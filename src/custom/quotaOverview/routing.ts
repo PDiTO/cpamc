@@ -105,15 +105,14 @@ export function normalizeRoutingSnapshot(
       if (
         typeof value.used_percent !== 'number' ||
         !Number.isFinite(value.used_percent) ||
-        value.used_percent < 0 ||
-        value.used_percent > 100
+        value.used_percent < 0
       ) {
         throw new Error('Invalid routing usage');
       }
       window = {
         key: text(value.key),
         resetsAtMs: instant(value.resets_at),
-        usedPercent: value.used_percent,
+        usedPercent: Math.min(100, value.used_percent),
       };
     }
     const ageSeconds = account.age_seconds == null ? null : integer(account.age_seconds);

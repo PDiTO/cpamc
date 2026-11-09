@@ -87,6 +87,38 @@ describe('backend routing contract', () => {
     ).toBe(12);
   });
 
+  test('an over-limit account does not discard the healthy account ranking', () => {
+    const exhausted = rawAccount('first', 0);
+    exhausted.skipped_reason = 'quota_exhausted';
+    exhausted.window.used_percent = 100.4;
+    const snapshot = normalizeRoutingSnapshot(
+      { ...rawStatus(), accounts: [exhausted, rawAccount('second', 1)] },
+      query,
+      NOW
+    );
+    expect(snapshot.accounts[0].window?.usedPercent).toBe(100);
+    expect(snapshot.accounts[0].eligible).toBe(false);
+    expect(snapshot.nextAuthIndex).toBe('second');
+    expect(
+      routingAccountFor(
+        file('z.json', 'second'),
+        'codex',
+        { codex: { state: 'ready', snapshot } },
+        NOW
+      )?.next
+    ).toBe(true);
+    for (const usedPercent of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      exhausted.window.used_percent = usedPercent;
+      expect(() =>
+        normalizeRoutingSnapshot(
+          { ...rawStatus(), accounts: [exhausted, rawAccount('second', 1)] },
+          query,
+          NOW
+        )
+      ).toThrow();
+    }
+  });
+
   test('Home, plugins and unpredictable strategies suppress next-account and rank claims', () => {
     for (const reason of ['home_authoritative', 'plugin_scheduler', 'strategy_not_predictable']) {
       const snapshot = normalizeRoutingSnapshot(
@@ -155,6 +187,7 @@ describe('routing controls and configuration compatibility', () => {
   test('both editors preserve the fork strategy instead of showing round-robin', () => {
     expect(parseRoutingStrategy('soonest-reset-first')).toBe('soonest-reset-first');
     expect(normalizeRoutingStrategy('soonest-reset-first')).toBe('soonest-reset-first');
+    expect(normalizeRoutingStrategy(' Soonest-Reset-First ')).toBe('soonest-reset-first');
     expect(readRoutingSettings({ routing: { strategy: 'soonest-reset-first' } }).strategy).toBe(
       'soonest-reset-first'
     );

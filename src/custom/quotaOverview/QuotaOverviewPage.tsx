@@ -309,8 +309,10 @@ export function QuotaOverviewPage() {
   );
   const visiblePools = pools.filter((pool) => ui.tab === 'all' || ui.tab === pool.provider);
 
-  // Projection follows CPA's routing strategy; anything but fill-first spreads load.
-  const routingStrategy = useConfigStore((state) => state.config?.routingStrategy);
+  // Match the backend's normalization for hand-edited strategy values.
+  const routingStrategy = normalizeRoutingStrategy(
+    useConfigStore((state) => state.config?.routingStrategy)
+  );
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
   useEffect(() => {
     if (connectionStatus === 'connected') fetchConfig().catch(() => {});
@@ -318,7 +320,7 @@ export function QuotaOverviewPage() {
   const routingMode =
     routingStrategy === QUOTA_STRATEGY
       ? 'soonest-reset-first'
-      : normalizeRoutingStrategy(routingStrategy) === 'fill-first'
+      : routingStrategy === 'fill-first'
         ? 'fill-first'
         : 'spread';
 
@@ -385,7 +387,9 @@ export function QuotaOverviewPage() {
     try {
       await client.put('/config/routing/strategy', QUOTA_STRATEGY);
       if (revision !== apiClient.getConnectionRevision()) return;
+      useConfigStore.getState().clearCache('routing/strategy');
       await fetchConfig(true);
+      if (revision !== apiClient.getConnectionRevision()) return;
       refreshRouting();
       showNotification(t('pd_overview.routing_saved'), 'success');
     } catch {
