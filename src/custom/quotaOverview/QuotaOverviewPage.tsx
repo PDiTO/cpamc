@@ -11,13 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { authFilesApi } from '@/services/api';
 import { EmptyState } from '@/components/ui/EmptyState';
-import {
-  IconChevronLeft,
-  IconEye,
-  IconEyeOff,
-  IconSearch,
-  IconX,
-} from '@/components/ui/icons';
+import { IconChevronLeft, IconEye, IconEyeOff, IconSearch, IconX } from '@/components/ui/icons';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
@@ -519,6 +513,9 @@ export function QuotaOverviewPage() {
                 options={futureOptions}
                 onChange={(value) => updateUi({ futureUsage: value as FutureUsage })}
                 ariaLabelledBy="pd-future-usage"
+                className={styles.usageSelect}
+                dropdownClassName={styles.usageDropdown}
+                fullWidth={false}
                 size="sm"
               />
             </div>
