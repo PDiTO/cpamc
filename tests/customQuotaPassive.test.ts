@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { buildOverviewCredential, rollPastResets } from '@/custom/quotaOverview/model';
 import { readPassiveQuota } from '@/custom/quotaOverview/passiveQuota';
+import i18n from '@/i18n';
+import '@/custom/i18n';
 import type { QuotaCardState } from '@/features/quota/providers';
 import type { AuthFileItem } from '@/types';
 
@@ -48,6 +50,73 @@ describe('passive quota from CLIProxy observations', () => {
       ['five-hour', 80, null, 5],
       ['weekly', 65, OBSERVED + HOUR, 168],
     ]);
+    expect(passive?.windows.map((w) => w.label)).toEqual([
+      i18n.t('codex_quota.primary_window'),
+      i18n.t('codex_quota.secondary_window'),
+    ]);
+  });
+
+  test('a weekly-only primary window shows 89% weekly remaining without an inactive second limit', () => {
+    const credential = buildOverviewCredential(
+      {
+        type: 'codex',
+        file: fileWith('codex', {
+          'x-codex-primary-used-percent': '11',
+          'x-codex-primary-window-minutes': '10080',
+          'x-codex-primary-reset-at': seconds(NOW + 48 * HOUR),
+          'x-codex-secondary-used-percent': '0',
+          'x-codex-secondary-window-minutes': '0',
+        }),
+      },
+      undefined,
+      NOW
+    );
+    expect(credential.windows).toEqual([
+      {
+        id: 'weekly',
+        label: i18n.t('codex_quota.secondary_window'),
+        remaining: 89,
+        resetAtMs: NOW + 48 * HOUR,
+        periodHours: 168,
+      },
+    ]);
+    expect(credential.primary?.id).toBe('weekly');
+    expect(credential.sample).toEqual([OBSERVED, 89, NOW + 48 * HOUR]);
+  });
+
+  test('swapped primary and secondary slots keep their own duration labels and percentages', () => {
+    const passive = readPassiveQuota(
+      'codex',
+      fileWith('codex', {
+        'x-codex-primary-used-percent': '11',
+        'x-codex-primary-window-minutes': '10080',
+        'x-codex-secondary-used-percent': '20',
+        'x-codex-secondary-window-minutes': '300',
+      })
+    );
+    expect(passive?.windows.map((w) => [w.id, w.label, w.remaining, w.periodHours])).toEqual([
+      ['weekly', i18n.t('codex_quota.secondary_window'), 89, 168],
+      ['five-hour', i18n.t('codex_quota.primary_window'), 80, 5],
+    ]);
+  });
+
+  test('monthly, unfamiliar and missing durations never assume a five-hour or weekly limit', () => {
+    for (const [minutes, id, label, hours] of [
+      ['40320', 'monthly', i18n.t('codex_quota.team_secondary_window'), 672],
+      ['90', 'codex-primary', i18n.t('pd_overview.codex_window_minutes', { minutes: 90 }), 1.5],
+      [undefined, 'codex-primary', i18n.t('pd_overview.codex_window_unknown'), null],
+    ] as const) {
+      const passive = readPassiveQuota(
+        'codex',
+        fileWith('codex', {
+          'x-codex-primary-used-percent': '11',
+          ...(minutes === undefined ? {} : { 'x-codex-primary-window-minutes': minutes }),
+        })
+      );
+      expect(passive?.windows.map((w) => [w.id, w.label, w.remaining, w.periodHours])).toEqual([
+        [id, label, 89, hours],
+      ]);
+    }
   });
 
   test('ignores missing or malformed observations and other providers', () => {
