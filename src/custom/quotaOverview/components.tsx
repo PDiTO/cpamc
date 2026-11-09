@@ -2,7 +2,7 @@
  * Quota Overview building blocks: ledger rows.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconCheck, IconPencil, IconRefreshCw, IconX, type IconProps } from '@/components/ui/icons';
 import type { ResolvedTheme } from '@/types';
@@ -20,6 +20,8 @@ import {
   formatTimeLeft,
   maskEmails,
   resetUrgency,
+  resetGrantKind,
+  fableColor,
   type ResetUrgency,
   type OverviewCredential,
 } from './model';
@@ -178,9 +180,10 @@ interface ResetCreditView {
   count: number;
   label: string | null;
   expiresAtMs: number | null;
+  kind: 'shared' | 'fable' | 'unknown';
 }
 
-function ResetsCell({
+export function ResetsCell({
   credits,
   nowMs,
   canUse,
@@ -228,6 +231,16 @@ function ResetsCell({
               className={urgencyClass[resetUrgency(credit.expiresAtMs, nowMs)]}
               title={credit.label ?? undefined}
             >
+              <span
+                className={`${styles.resetScope} ${credit.kind === 'fable' ? styles.fableScope : ''}`}
+                title={
+                  credit.kind === 'unknown'
+                    ? t('pd_overview.reset_scope_unknown')
+                    : (credit.label ?? undefined)
+                }
+              >
+                {t(`pd_overview.reset_${credit.kind}`)}
+              </span>
               <span className={styles.resetDate}>
                 {credit.expiresAtMs === null
                   ? t('pd_overview.no_expiry')
@@ -316,6 +329,7 @@ export function LedgerRow({
           count: grant.resetsLeft,
           label: grant.label || null,
           expiresAtMs: Number.isFinite(ends) ? ends : null,
+          kind: resetGrantKind(grant),
         };
       });
     canUseReset = !claudeReset.blocked;
@@ -333,6 +347,7 @@ export function LedgerRow({
           count: 1,
           label: null,
           expiresAtMs: Number.isFinite(ends) ? ends : null,
+          kind: 'shared',
         };
       });
     canUseReset = Boolean(
@@ -355,7 +370,11 @@ export function LedgerRow({
   const refreshLabel = status === 'idle' ? t('pd_overview.load') : t('pd_overview.refresh');
 
   return (
-    <div className={styles.row} data-first={firstInLine || undefined}>
+    <div
+      className={styles.row}
+      data-first={firstInLine || undefined}
+      style={{ '--fable-color': fableColor(resolvedTheme) } as CSSProperties}
+    >
       <div className={styles.rowIdentity}>
         <div className={styles.rowName}>
           <ProviderIcon provider={entry.type} resolvedTheme={resolvedTheme} />

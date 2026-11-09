@@ -17,6 +17,18 @@ import type { HistorySample, QuotaHistory } from './history';
 import { readPassiveQuota } from './passiveQuota';
 import type { PoolAccount } from './poolForecast';
 import type { RoutingAccount } from './routing';
+import type { AnthropicResetGrant } from '@/services/api/claudeResetGrants';
+
+export const FABLE_WINDOW_ID = 'seven-day-fable';
+export const fableColor = (theme: string) => (theme === 'dark' ? '#b69aff' : '#8056d9');
+
+/** Use the reported label or cleared windows, never a grant ID or its expiry. */
+export function resetGrantKind(grant: Pick<AnthropicResetGrant, 'label' | 'clears'>) {
+  if (/\bfable\b/i.test(grant.label)) return 'fable' as const;
+  if (grant.clears.includes('seven_day') || grant.clears.includes('five_hour'))
+    return 'shared' as const;
+  return 'unknown' as const;
+}
 
 /** One limit on one credential, normalized to percent remaining. */
 export interface OverviewWindow {
@@ -49,6 +61,9 @@ export interface OverviewCredential {
   observedAtMs: number | null;
   /** The weekly reading as observed (before rolling past resets), for history. */
   sample: HistorySample | null;
+  /** Scoped readings keep their own observation time, even after a newer header read. */
+  fableSample: HistorySample | null;
+  fableObservedAtMs: number | null;
   /** Backend decision for the selected new-session request context, when available. */
   routing?: RoutingAccount & { next: boolean };
 }
@@ -58,6 +73,8 @@ export interface OverviewProviderPool {
   credentialCount: number;
   /** Credentials with a weekly reading, in routing order. */
   accounts: PoolAccount[];
+  /** Fable allowance, separate from and never added to shared weekly capacity. */
+  fableAccounts: PoolAccount[];
 }
 
 const WEEKLY_HOURS = 168;
@@ -212,6 +229,12 @@ export function buildOverviewCredential(
     observedAtMs = passive.observedAtMs;
   }
   const observedPrimary = pickPrimaryWindow(observed);
+  const observedFable =
+    entry.type === 'claude' ? observed.find((window) => window.id === FABLE_WINDOW_ID) : null;
+  const fableObservedAtMs =
+    source === 'proxy' && passive?.windows.some((window) => window.id === FABLE_WINDOW_ID)
+      ? passive.observedAtMs
+      : liveAt;
   const windows = rollPastResets(observed, nowMs);
   return {
     entry,
@@ -228,6 +251,11 @@ export function buildOverviewCredential(
       observedPrimary && observedPrimary.remaining !== null
         ? [observedAtMs ?? nowMs, observedPrimary.remaining, observedPrimary.resetAtMs]
         : null,
+    fableSample:
+      observedFable && observedFable.remaining !== null
+        ? [fableObservedAtMs ?? nowMs, observedFable.remaining, observedFable.resetAtMs]
+        : null,
+    fableObservedAtMs,
   };
 }
 
@@ -301,33 +329,41 @@ export function buildProviderPools(
         .filter((credential) => credential.entry.type === provider)
         .sort(compareRoutingOrder);
       if (own.length === 0) return null;
-      const accounts = own.flatMap((credential): PoolAccount[] => {
-        const primary = credential.primary;
-        if (!primary || primary.remaining === null) return [];
-        const key = historyKey(provider, getQuotaCacheKey(credential.entry.file));
-        return [
-          {
-            key,
-            name: credential.entry.file.name,
-            label: credentialLabel(credential.entry.file),
-            priority: credential.priority,
-            enabled: !credential.entry.file.disabled,
-            remaining: primary.remaining,
-            resetAtMs: primary.resetAtMs,
-            periodMs: primary.periodHours === null ? null : primary.periodHours * HOUR_MS,
-            blockedUntilMs: maxOrNull(credential.backAtMs, credential.cooldownUntilMs),
-            samples: history[key] ?? [],
-          },
-        ];
-      });
-      return { provider, credentialCount: own.length, accounts };
+      const toAccounts = (windowId?: string) =>
+        own.flatMap((credential): PoolAccount[] => {
+          const primary = windowId
+            ? credential.windows.find((window) => window.id === windowId)
+            : credential.primary;
+          if (!primary || primary.remaining === null) return [];
+          const key = historyKey(provider, getQuotaCacheKey(credential.entry.file), windowId);
+          return [
+            {
+              key,
+              name: credential.entry.file.name,
+              label: credentialLabel(credential.entry.file),
+              priority: credential.priority,
+              enabled: !credential.entry.file.disabled,
+              remaining: primary.remaining,
+              resetAtMs: primary.resetAtMs,
+              periodMs: primary.periodHours === null ? null : primary.periodHours * HOUR_MS,
+              blockedUntilMs: maxOrNull(credential.backAtMs, credential.cooldownUntilMs),
+              samples: history[key] ?? [],
+            },
+          ];
+        });
+      return {
+        provider,
+        credentialCount: own.length,
+        accounts: toAccounts(),
+        fableAccounts: provider === 'claude' ? toAccounts(FABLE_WINDOW_ID) : [],
+      };
     })
     .filter((pool): pool is OverviewProviderPool => pool !== null);
 }
 
 /** History series key: one per provider credential identity. */
-export const historyKey = (provider: QuotaProviderType, cacheKey: string) =>
-  `${provider}:${cacheKey}`;
+export const historyKey = (provider: QuotaProviderType, cacheKey: string, windowId?: string) =>
+  windowId ? JSON.stringify([provider, cacheKey, windowId]) : `${provider}:${cacheKey}`;
 
 const maxOrNull = (a: number | null, b: number | null) =>
   a === null ? b : b === null ? a : Math.max(a, b);
