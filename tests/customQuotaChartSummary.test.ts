@@ -32,7 +32,6 @@ const base: PoolChartProps = {
   burnHours: 3,
   futureUsage: 'current',
   routing: 'soonest-reset-first',
-  hideEmails: true,
   resolvedTheme: 'light',
 };
 const render = (patch: Partial<PoolChartProps> = {}) =>

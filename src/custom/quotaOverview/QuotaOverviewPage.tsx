@@ -587,7 +587,6 @@ export function QuotaOverviewPage() {
                 burnHours={ui.burnHours}
                 futureUsage={ui.futureUsage}
                 routing={routingMode}
-                hideEmails={ui.hideEmails}
                 resolvedTheme={resolvedTheme}
               />
             ))}
