@@ -10,13 +10,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { authFilesApi } from '@/services/api';
-import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   IconChevronLeft,
   IconEye,
   IconEyeOff,
-  IconRefreshCw,
   IconSearch,
   IconX,
 } from '@/components/ui/icons';
@@ -210,9 +208,6 @@ export function QuotaOverviewPage() {
     },
     [connectionStatus, sessionGeneration, t]
   );
-
-  const refreshFiles = useCallback(() => loadFiles(), [loadFiles]);
-  useHeaderRefresh(refreshFiles);
 
   useEffect(() => {
     void loadFiles();
@@ -416,10 +411,11 @@ export function QuotaOverviewPage() {
     return () => window.clearInterval(timer);
   }, [canUseActions, loadQuota, loadableEntries]);
 
-  const handleRefreshAll = useCallback(() => {
-    if (!canUseActions) return;
-    void loadQuota(loadableEntries);
-  }, [canUseActions, loadQuota, loadableEntries]);
+  const handleRefreshAll = useCallback(async () => {
+    const quotaRefresh = canUseActions ? loadQuota(loadableEntries) : Promise.resolve();
+    await Promise.all([loadFiles(), quotaRefresh]);
+  }, [canUseActions, loadFiles, loadQuota, loadableEntries]);
+  useHeaderRefresh(handleRefreshAll);
 
   const sortOptions = useMemo(
     () =>
@@ -455,14 +451,6 @@ export function QuotaOverviewPage() {
             </Link>
           </div>
         </div>
-        <Button
-          size="sm"
-          onClick={handleRefreshAll}
-          loading={batchLoading}
-          disabled={!canUseActions || loadableEntries.length === 0}
-        >
-          <IconRefreshCw size={14} aria-hidden="true" /> {t('pd_overview.refresh_all')}
-        </Button>
       </header>
 
       {error && (
