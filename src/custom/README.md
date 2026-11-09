@@ -32,7 +32,7 @@ The upstream sync workflow merges and verifies both sets of changes before relea
 ## Pages
 
 - **Quota Overview** (`#/quota-overview`): a pool chart per provider (weekly capacity
-  recorded and projected, with burn rate, first and pool empty, and next reset), a ledger of
+  recorded and projected, with a compact next-reset summary), a ledger of
   credentials in backend routing order with its next new-session choice marked, and
   upstream's cards and quota-window timeline. It shares the quota cache with the official
   Quota Management page, loads unloaded credentials on open and refreshes every 15 minutes
@@ -51,10 +51,10 @@ The upstream sync workflow merges and verifies both sets of changes before relea
     reset under `soonest-reset-first`, and spread evenly otherwise. Projections simulate new
     unbound traffic using displayed windows. They do not predict the effect of live affinity
     bindings, future quota freshness or model-specific limits.
-  - Claude's Fable allowance has a separate mustard history and projection line. It is never
+  - Claude's Fable allowance has a separate golden-yellow history and projection line. It is never
     added to shared weekly capacity, and shared weekly and five-hour limits still apply.
     Both remaining totals appear together, with matching Claude and Fable legend keys.
-    Mustard reset markers and credit badges identify Fable resets when the reported label
+    Golden reset markers and credit badges identify Fable resets when the reported label
     names Fable. Shared-window grants have a regular badge; unclear grants stay unclassified.
 
 ## Backend routing status

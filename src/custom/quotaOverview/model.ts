@@ -20,7 +20,8 @@ import type { RoutingAccount } from './routing';
 import type { AnthropicResetGrant } from '@/services/api/claudeResetGrants';
 
 export const FABLE_WINDOW_ID = 'seven-day-fable';
-export const fableColor = (theme: string) => (theme === 'dark' ? '#d6b24c' : '#85651c');
+/** Golden yellow; the light-theme step keeps small labels readable. */
+export const fableColor = (theme: string) => (theme === 'dark' ? '#ffcc4d' : '#9a6d00');
 
 /** Use the reported label or cleared windows, never a grant ID or its expiry. */
 export function resetGrantKind(grant: Pick<AnthropicResetGrant, 'label' | 'clears'>) {

@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { getTypeLabel } from '@/features/authFiles/constants';
 import type { QuotaProviderType } from '@/features/quota/providers/types';
 import type { ResolvedTheme } from '@/types';
-import { fableColor, formatCountdown, formatShortDate, maskEmails } from './model';
+import { fableColor, formatCountdown } from './model';
 import {
   burnRate,
   drainAt,
@@ -34,11 +34,12 @@ import {
   type SeriesPoint,
 } from './poolForecast';
 import { ProviderIcon } from './ProviderIcon';
+import { niceCeil, remainingQuotaTicks } from './chartTicks';
 import styles from './PoolChart.module.scss';
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
-/** Stats look this far ahead, whatever the visible range. */
+/** Forecast at least this far ahead, whatever the visible range. */
 export const FORECAST_HORIZON_MS = 14 * DAY_MS;
 
 export const CHART_MODES = ['remaining', 'drain'] as const;
@@ -48,11 +49,11 @@ export type BurnWindow = (typeof BURN_WINDOWS)[number];
 export const FUTURE_USAGE = ['current', 'week', 'half', 'double', 'none'] as const;
 export type FutureUsage = (typeof FUTURE_USAGE)[number];
 
-const HEIGHT = 300;
-const MARGIN = { top: 34, right: 14, bottom: 46, left: 56 };
+const HEIGHT = 270;
+const MARGIN = { top: 34, right: 14, bottom: 32, left: 56 };
 const MIN_JUMP_LABEL = 3;
 
-/** Provider line colors, light and dark steps. Text never uses these. */
+/** Matching line and headline colors, with light and dark steps. */
 const PROVIDER_COLORS: Partial<Record<QuotaProviderType, [string, string]>> = {
   claude: ['#d4693f', '#e07a52'],
   codex: ['#2a78d6', '#5598e7'],
@@ -71,14 +72,6 @@ const formatWhen = (ms: number, locale: string) =>
   new Date(ms).toLocaleString(locale, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
 
 const formatRate = (rate: number) => (rate < 10 ? rate.toFixed(1) : String(Math.round(rate)));
-
-/** 1, 2 or 5 times a power of ten, at least `value`. */
-const niceCeil = (value: number) => {
-  if (value <= 0) return 1;
-  const magnitude = 10 ** Math.floor(Math.log10(value));
-  const step = [1, 2, 5, 10].find((m) => m * magnitude >= value) ?? 10;
-  return step * magnitude;
-};
 
 function useElementWidth<T extends HTMLElement>() {
   const [width, setWidth] = useState(0);
@@ -107,7 +100,6 @@ export interface PoolChartProps {
   burnHours: BurnWindow;
   futureUsage: FutureUsage;
   routing: RoutingMode;
-  hideEmails: boolean;
   resolvedTheme: ResolvedTheme;
 }
 
@@ -123,17 +115,12 @@ export function PoolChart({
   burnHours,
   futureUsage,
   routing,
-  hideEmails,
   resolvedTheme,
 }: PoolChartProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const providerLabel = getTypeLabel(t, provider);
   const notLoaded = credentialCount - accounts.length;
-  const labels = useMemo(
-    () => accounts.map((account) => (hideEmails ? maskEmails(account.label) : account.label)),
-    [accounts, hideEmails]
-  );
 
   const total = accounts.length * 100;
   const poolRemaining = sumValues(accounts.map((account) => account.remaining));
@@ -188,23 +175,8 @@ export function PoolChart({
     };
   }, [fableAccounts, nowMs, futureUsage, burnHours, mode, horizonMs, rangeEndMs, routing]);
 
-  /* ---------- stats ---------- */
-
-  const horizonDate = formatShortDate(horizonMs, locale);
-  const within = (ms: number | null | undefined): ms is number =>
-    typeof ms === 'number' && ms <= horizonMs;
-  const poolEmptyText = within(projection.poolEmptyMs)
-    ? t('pd_overview.in_time', { time: formatCountdown(projection.poolEmptyMs, nowMs) })
-    : t('pd_overview.not_by', { date: horizonDate });
-  const firstEmpty = projection.firstEmpty;
-  const firstEmptyText =
-    firstEmpty && within(firstEmpty.t)
-      ? t('pd_overview.named_in', {
-          name: labels[firstEmpty.index],
-          time: formatCountdown(firstEmpty.t, nowMs),
-        })
-      : t('pd_overview.none_by', { date: horizonDate });
-  const nextReset = projection.nextReset;
+  const nextReset =
+    projection.nextReset && projection.nextReset.t <= horizonMs ? projection.nextReset : null;
 
   /* ---------- geometry ---------- */
 
@@ -257,7 +229,10 @@ export function PoolChart({
 
   /* ---------- ticks and labels ---------- */
 
-  const yTicks = [0, yMax / 2, yMax];
+  const yTicks =
+    mode === 'remaining'
+      ? remainingQuotaTicks(yMax)
+      : [0, yMax / 2, yMax].map((value) => ({ value, label: true }));
   const days = useMemo(() => {
     const out: number[] = [];
     const d = new Date(rangeStartMs);
@@ -269,7 +244,7 @@ export function PoolChart({
     }
     return out;
   }, [rangeStartMs, rangeEndMs]);
-  const dayStep = plotW / Math.max(1, days.length) < 44 ? 2 : 1;
+  const dayStep = Math.max(1, Math.ceil((days.length * 64) / Math.max(1, plotW)));
   const nowVisible = nowMs >= rangeStartMs && nowMs <= rangeEndMs;
 
   const jumpLabels = useMemo(() => {
@@ -405,69 +380,46 @@ export function PoolChart({
       <header className={styles.head}>
         <ProviderIcon provider={provider} resolvedTheme={resolvedTheme} />
         <h2 className={styles.name}>{providerLabel}</h2>
-        <span className={styles.muted}>
-          {t('pd_overview.accounts', { count: credentialCount })}
-          {notLoaded > 0 && ` · ${t('pd_overview.not_loaded', { count: notLoaded })}`}
-        </span>
+        {notLoaded > 0 && (
+          <span className={styles.muted}>{t('pd_overview.not_loaded', { count: notLoaded })}</span>
+        )}
+        {nextReset && (
+          <span
+            className={styles.nextReset}
+            title={`+${Math.round(nextReset.gain)}% · ${formatWhen(nextReset.t, locale)}`}
+          >
+            {t('pd_overview.next_reset')}
+            <strong>{formatCountdown(nextReset.t, nowMs)}</strong>
+          </span>
+        )}
       </header>
 
       {accounts.length === 0 && !hasFable ? (
         <p className={styles.muted}>{t('pd_overview.not_loaded_row')}</p>
       ) : (
         <>
-          <div className={styles.stats}>
-            <div className={styles.hero}>
-              <span className={`${styles.heroValue} ${hasFable ? styles.providerText : ''}`}>
-                {Math.round(poolRemaining)}%
-              </span>
-              {hasFable && fable.total !== total && (
-                <span className={styles.muted}>{t('pd_overview.of_total', { total })}</span>
-              )}
-              {hasFable && (
-                <>
-                  <span className={styles.heroSeparator} aria-hidden="true">
-                    /
-                  </span>
-                  <span className={`${styles.heroValue} ${styles.fableText}`}>
-                    {Math.round(fable.remaining)}%
-                  </span>
-                </>
-              )}
-              <span className={styles.muted}>
-                {t('pd_overview.of_total', { total: hasFable ? fable.total : total })}
-              </span>
-            </div>
-            <dl className={styles.statList}>
-              <div>
-                <dt>{t('pd_overview.pool_empty')}</dt>
-                <dd>{poolEmptyText}</dd>
-              </div>
-              <div>
-                <dt>{t('pd_overview.first_empty')}</dt>
-                <dd>{firstEmptyText}</dd>
-              </div>
-              <div>
-                <dt>{t('pd_overview.next_reset')}</dt>
-                <dd>
-                  {nextReset && within(nextReset.t) ? (
-                    <>
-                      <strong>+{Math.round(nextReset.gain)}%</strong>{' '}
-                      {formatWhen(nextReset.t, locale)}
-                    </>
-                  ) : (
-                    '–'
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>{t('pd_overview.burn_label', { hours: burnHours })}</dt>
-                <dd title={burn === null ? t('pd_overview.history_hint') : undefined}>
-                  {burn === null
-                    ? t('pd_overview.no_burn_data')
-                    : t('pd_overview.rate_value', { value: formatRate(burn) })}
-                </dd>
-              </div>
-            </dl>
+          <div className={styles.hero}>
+            <span
+              className={`${styles.heroValue} ${hasFable || provider === 'codex' ? styles.providerText : ''}`}
+            >
+              {Math.round(poolRemaining)}%
+            </span>
+            {hasFable && fable.total !== total && (
+              <span className={styles.muted}>{t('pd_overview.of_total', { total })}</span>
+            )}
+            {hasFable && (
+              <>
+                <span className={styles.heroSeparator} aria-hidden="true">
+                  /
+                </span>
+                <span className={`${styles.heroValue} ${styles.fableText}`}>
+                  {Math.round(fable.remaining)}%
+                </span>
+              </>
+            )}
+            <span className={styles.muted}>
+              {t('pd_overview.of_total', { total: hasFable ? fable.total : total })}
+            </span>
           </div>
 
           <div
@@ -496,44 +448,39 @@ export function PoolChart({
                     <rect x={MARGIN.left} y={0} width={plotW} height={baseline} />
                   </clipPath>
                   <linearGradient id={`${uid}-fill`} x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor={color} stopOpacity={0.32} />
-                    <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+                    <stop offset="0%" stopColor={color} stopOpacity={0.09} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0} />
                   </linearGradient>
                 </defs>
 
-                {yTicks.map((tick) => (
+                {yTicks.map(({ value: tick, label }) => (
                   <g key={tick}>
                     <line
-                      className={tick === 0 ? styles.axis : styles.grid}
+                      className={tick === 0 ? styles.axis : label ? styles.grid : styles.minorGrid}
                       x1={MARGIN.left}
                       x2={MARGIN.left + plotW}
                       y1={y(tick)}
                       y2={y(tick)}
                     />
-                    <text
-                      className={styles.tick}
-                      x={MARGIN.left - 10}
-                      y={y(tick) + 4}
-                      textAnchor="end"
-                    >
-                      {tick === 0
-                        ? '0'
-                        : mode === 'drain'
-                          ? `${Number.isInteger(tick) ? tick : tick.toFixed(1)}%/h`
-                          : `${Math.round(tick)}%`}
-                    </text>
+                    {label && (
+                      <text
+                        className={styles.tick}
+                        x={MARGIN.left - 10}
+                        y={y(tick) + 4}
+                        textAnchor="end"
+                      >
+                        {tick === 0
+                          ? '0'
+                          : mode === 'drain'
+                            ? `${Number.isInteger(tick) ? tick : tick.toFixed(1)}%/h`
+                            : `${Math.round(tick)}%`}
+                      </text>
+                    )}
                   </g>
                 ))}
 
                 {days.map((day, index) => (
                   <g key={day}>
-                    <line
-                      className={styles.grid}
-                      x1={x(day)}
-                      x2={x(day)}
-                      y1={MARGIN.top}
-                      y2={baseline}
-                    />
                     {index % dayStep === 0 && x(day + DAY_MS / 2) < MARGIN.left + plotW && (
                       <text
                         className={styles.tick}
@@ -541,12 +488,10 @@ export function PoolChart({
                         y={baseline + 18}
                         textAnchor="middle"
                       >
-                        <tspan>
-                          {new Date(day).toLocaleDateString(locale, { weekday: 'short' })}
-                        </tspan>
-                        <tspan x={x(day + DAY_MS / 2)} dy={15}>
-                          {new Date(day).getDate()}
-                        </tspan>
+                        {new Date(day).toLocaleDateString(locale, {
+                          weekday: 'short',
+                          day: 'numeric',
+                        })}
                       </text>
                     )}
                   </g>
