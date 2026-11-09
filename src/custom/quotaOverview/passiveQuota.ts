@@ -4,7 +4,7 @@
  * Every upstream response CLIProxy proxies for a Claude or Codex credential
  * carries rate-limit headers (`anthropic-ratelimit-unified-*`, `x-codex-*`).
  * CLIProxy keeps the latest set per credential and returns it from
- * `GET /auth-files` as `quota: { observed_at, signals }`. Reading it costs no
+ * `GET /credentials` as `quota: { observed_at, signals }`. Reading it costs no
  * call to Anthropic or OpenAI; it is as fresh as the credential's last request.
  */
 
@@ -84,17 +84,37 @@ function codexWindows(signals: Map<string, string>, observedAtMs: number): Overv
     const used = readNumber(signals.get(`${prefix}-used-percent`));
     if (used === null) return [];
     const minutes = readNumber(signals.get(`${prefix}-window-minutes`));
+    // A zero-length slot is inactive, even when it includes a zero usage counter.
+    if (minutes !== null && minutes <= 0) return [];
     const resetAfter = readNumber(signals.get(`${prefix}-reset-after-seconds`));
     const resetAtMs =
       readInstant(signals.get(`${prefix}-reset-at`)) ??
       (resetAfter === null ? null : observedAtMs + resetAfter * 1000);
     const weekly = minutes === WEEK_MINUTES;
+    const monthly = minutes !== null && minutes >= 28 * 24 * 60 && minutes <= 31 * 24 * 60;
+    // Primary is a slot name, not a duration. Weekly-only accounts use it too.
+    const label = i18n.t(
+      weekly
+        ? 'codex_quota.secondary_window'
+        : minutes === 300
+          ? 'codex_quota.primary_window'
+          : monthly
+            ? 'codex_quota.team_secondary_window'
+            : minutes === null
+              ? 'pd_overview.codex_window_unknown'
+              : 'pd_overview.codex_window_minutes',
+      { minutes }
+    );
     return [
       {
-        id: weekly ? 'weekly' : minutes === 300 ? 'five-hour' : `codex-${slot}`,
-        label: i18n.t(
-          slot === 'primary' ? 'codex_quota.primary_window' : 'codex_quota.secondary_window'
-        ),
+        id: weekly
+          ? 'weekly'
+          : minutes === 300
+            ? 'five-hour'
+            : monthly
+              ? 'monthly'
+              : `codex-${slot}`,
+        label,
         remaining: clampPercent(100 - used),
         resetAtMs,
         periodHours: minutes === null ? null : (minutes * MINUTE_MS) / 3_600_000,

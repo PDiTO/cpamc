@@ -31,6 +31,8 @@ const en = {
   not_loaded: '{{count}} not loaded',
   resets: '{{relative}} · {{date}}',
   other_limits: 'Other limits',
+  codex_window_unknown: 'Usage limit',
+  codex_window_minutes: '{{minutes}}-minute limit',
   first_in_line: 'Next new session',
   first_in_line_hint:
     'Backend estimate for a new session across all models, using WebSocket for Codex and HTTP for other providers. Existing sessions and model-specific limits may use another account.',
