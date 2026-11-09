@@ -10,7 +10,8 @@ import {
   routingAccountFor,
   type RoutingLoads,
 } from '@/custom/quotaOverview/routing';
-import { RoutingPanel } from '@/custom/quotaOverview/RoutingPanel';
+import { PolicyPanel } from '@/features/routing/components/PolicyPanel';
+import { ROUTING_STRATEGIES } from '@/types/routing';
 import {
   buildOverviewCredential,
   firstInLine,
@@ -163,25 +164,21 @@ describe('backend routing contract', () => {
 });
 
 describe('routing controls and configuration compatibility', () => {
-  test('old backends show an honest fallback with the custom policy button disabled', () => {
+  test('the normal policy picker includes soonest reset first before it is enabled', () => {
+    expect(ROUTING_STRATEGIES).toContain('soonest-reset-first');
     const html = renderToStaticMarkup(
-      createElement(RoutingPanel, {
-        providers: ['codex'],
-        contexts: {},
-        loads: { codex: { state: 'unsupported' } },
-        nowMs: NOW,
-        disabled: false,
-        saving: false,
-        onEnable: () => {},
-        onContextChange: () => {},
+      createElement(PolicyPanel, {
+        settings: {
+          strategy: 'soonest-reset-first',
+          sessionAffinity: true,
+          requestRetry: 3,
+          maxRetryCredentials: 0,
+        },
+        onChange: () => {},
       })
     );
-    expect(html).toContain('Routing status unavailable on this backend');
-    expect(html).toContain('makes no next-account prediction');
-    const enableButton = html.match(/<button[^>]*>[\s\S]*?<\/button>/)?.[0];
-    expect(enableButton).toContain('disabled');
-    expect(enableButton).toContain('Use soonest reset first');
-    expect(html).toContain('existing sessions');
+    expect(html).toContain('aria-haspopup="listbox"');
+    expect(html).toContain('Soonest reset first');
   });
 
   test('both editors preserve the fork strategy instead of showing round-robin', () => {
@@ -193,7 +190,15 @@ describe('routing controls and configuration compatibility', () => {
     );
   });
 
-  test('visual YAML writes retain the custom strategy', () => {
+  test('selecting the custom strategy preserves affinity and credential WebSocket settings', () => {
+    const yaml = `routing:
+  strategy: fill-first
+  session-affinity: true
+  session-affinity-ttl: 1h
+api-keys:
+  codex:
+    - websockets: true
+`;
     function Harness() {
       const config = useVisualConfig();
       const [phase, setPhase] = useState(0);
@@ -202,13 +207,13 @@ describe('routing controls and configuration compatibility', () => {
         setPhase(1);
         return null;
       }
-      return createElement(
-        'pre',
-        null,
-        config.applyVisualChangesToYaml('routing:\n  strategy: round-robin\n')
-      );
+      return createElement('pre', null, config.applyVisualChangesToYaml(yaml));
     }
     const html = renderToStaticMarkup(createElement(Harness));
-    expect(parseYaml(html.slice(5, -6))).toEqual({ routing: { strategy: 'soonest-reset-first' } });
+    const original = parseYaml(yaml);
+    expect(parseYaml(html.slice(5, -6))).toEqual({
+      ...original,
+      routing: { ...original.routing, strategy: 'soonest-reset-first' },
+    });
   });
 });

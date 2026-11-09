@@ -21,6 +21,16 @@ Manage providers, credentials, quotas, and logs — from a single HTML file.
 
 ---
 
+## PDiTO fork
+
+This dashboard pairs with [PDiTO/CLIProxyAPI](https://github.com/PDiTO/CLIProxyAPI)
+for quota-aware `soonest-reset-first` routing. Choose it in Routing settings or the visual
+config editor. Quota Overview shows usage, reset times and the backend's next-session estimate.
+
+Both forks merge their upstream projects every six hours and publish only after checks pass.
+See [fork customizations and update instructions](src/custom/README.md) for the API contract
+and release process.
+
 ## One place to manage your instance
 
 From everyday configuration to troubleshooting, keep the essentials close at hand.

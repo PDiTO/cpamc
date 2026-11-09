@@ -459,59 +459,6 @@ $label-x: $tier-pad + 1px + $index-size + 10px; // where tier names begin
   color: var(--text-tertiary);
 }
 
-/* Vertical segmented control: a recessed track with one raised selection. */
-.strategyGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
-}
-
-.strategyOption,
-.strategyOptionActive {
-  @include button-reset;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 34px;
-  padding: 0 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    background-color var(--dur-hover) var(--ease-out-strong),
-    box-shadow var(--dur-hover) var(--ease-out-strong),
-    color var(--dur-hover) var(--ease-out-strong);
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 1px;
-  }
-}
-
-.strategyOptionActive {
-  background: var(--floating-surface);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--text-primary) 6%, transparent),
-    0 1px 2px color-mix(in srgb, #000 8%, transparent);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .strategyOption:hover:not(:disabled) {
-    color: var(--text-primary);
-  }
-}
-
 .policyRow {
   display: flex;
   align-items: center;
@@ -647,8 +594,6 @@ $label-x: $tier-pad + 1px + $index-size + 10px; // where tier names begin
   .gapDrop,
   .tier,
   .tierIndex,
-  .strategyOption,
-  .strategyOptionActive,
   .numberField input {
     transition: none;
   }
