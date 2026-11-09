@@ -69,7 +69,7 @@ export interface Projection {
   nextReset: JumpMark | null;
 }
 
-export type RoutingMode = 'fill-first' | 'spread';
+export type RoutingMode = 'fill-first' | 'spread' | 'soonest-reset-first';
 
 interface PathPoint {
   t: number;
@@ -247,7 +247,8 @@ function activeAccounts(
   accounts: readonly PoolAccount[],
   remaining: readonly number[],
   blockedUntil: readonly (number | null)[],
-  mode: RoutingMode
+  mode: RoutingMode,
+  resets: readonly (number | null)[]
 ): number[] {
   const available = accounts
     .map((account, index) => ({ account, index }))
@@ -259,11 +260,16 @@ function activeAccounts(
   const top = Math.max(...available.map(({ account }) => account.priority));
   const tier = available
     .filter(({ account }) => account.priority === top)
-    .sort((a, b) =>
-      a.account.name < b.account.name ? -1 : a.account.name > b.account.name ? 1 : 0
-    )
+    .sort((a, b) => {
+      if (mode === 'soonest-reset-first') {
+        const aReset = resets[a.index] ?? Number.POSITIVE_INFINITY;
+        const bReset = resets[b.index] ?? Number.POSITIVE_INFINITY;
+        if (aReset !== bReset) return aReset - bReset;
+      }
+      return a.account.name < b.account.name ? -1 : a.account.name > b.account.name ? 1 : 0;
+    })
     .map(({ index }) => index);
-  return mode === 'fill-first' ? tier.slice(0, 1) : tier;
+  return mode === 'spread' ? tier : tier.slice(0, 1);
 }
 
 /**
@@ -302,7 +308,7 @@ export function projectPool({
 
   let t = nowMs;
   for (let guard = 0; t < untilMs && guard < 10_000; guard += 1) {
-    const active = burn > 0 ? activeAccounts(accounts, remaining, blocked, mode) : [];
+    const active = burn > 0 ? activeAccounts(accounts, remaining, blocked, mode, resets) : [];
     const share = active.length > 0 ? burn / active.length : 0;
 
     let next = untilMs;

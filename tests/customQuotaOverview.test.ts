@@ -113,7 +113,7 @@ describe('quota overview model', () => {
     ]);
   });
 
-  test('first in line skips exhausted, cooling down and disabled credentials', () => {
+  test('frontend quota alone never predicts the next account', () => {
     const list = [
       credential('a.json', claudeQuota(100, 0, NOW + HOUR)),
       credential('b.json', claudeQuota(0, 0, NOW + HOUR), {
@@ -132,7 +132,7 @@ describe('quota overview model', () => {
       credential('c.json', claudeQuota(0, 0, NOW + HOUR), { disabled: true }),
       credential('d.json', claudeQuota(10, 0, NOW + HOUR)),
     ];
-    expect([...firstInLine(list)]).toEqual(['d.json']);
+    expect([...firstInLine(list)]).toEqual([]);
   });
 
   test('provider pools keep loaded credentials in routing order with their history', () => {

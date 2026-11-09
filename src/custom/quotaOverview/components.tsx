@@ -25,6 +25,7 @@ import {
 } from './model';
 import { ProviderIcon } from './ProviderIcon';
 import styles from './QuotaOverviewPage.module.scss';
+import { routingReasonKey } from './routing';
 
 const levelClass = (percent: number | null) =>
   percent === null
@@ -391,6 +392,18 @@ export function LedgerRow({
           {firstInLine && (
             <span className={styles.badgeActive} title={t('pd_overview.first_in_line_hint')}>
               {t('pd_overview.first_in_line')}
+            </span>
+          )}
+          {credential.routing && (
+            <span>
+              {t(
+                routingReasonKey(credential.routing.skippedReason || credential.routing.quotaState)
+              )}
+              {credential.routing.ageSeconds !== null &&
+                ` · ${t('pd_overview.routing_age', { seconds: credential.routing.ageSeconds })}`}
+              {credential.routing.window &&
+                ` · ${credential.routing.window.key} · ${formatInstantShort(credential.routing.window.resetsAtMs)}`}
+              {credential.routing.refreshError && ` · ${t('pd_overview.routing_refresh_error')}`}
             </span>
           )}
           {credential.source === 'proxy' && credential.observedAtMs !== null && (

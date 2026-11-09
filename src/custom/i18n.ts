@@ -31,9 +31,52 @@ const en = {
   not_loaded: '{{count}} not loaded',
   resets: '{{relative}} · {{date}}',
   other_limits: 'Other limits',
-  first_in_line: 'First in line',
+  first_in_line: 'Next new session',
   first_in_line_hint:
-    'New sessions use this credential first under fill-first routing. Running sessions can stay on another one.',
+    'The backend predicts this account for a new session in the selected model and transport context. Existing sessions may stay on another account.',
+  routing_title: 'Backend routing',
+  routing_enable: 'Use soonest reset first',
+  routing_scope:
+    'Rankings apply to new sessions. Usable existing sessions and WebSocket continuations keep their account through affinity.',
+  routing_fallback_hint:
+    'When a backend ranking is unavailable, the ledger uses priority and name for display and makes no next-account prediction.',
+  routing_model: 'Model',
+  routing_all_models: 'Provider-wide preview',
+  routing_transport: 'Request transport',
+  routing_preview: 'Preview',
+  routing_unsupported: 'Routing status unavailable on this backend',
+  routing_error: 'Could not read routing status',
+  routing_stale: 'Routing snapshot expired',
+  routing_loading: 'Loading routing status',
+  routing_affinity_on: 'Session affinity enabled',
+  routing_affinity_off: 'Session affinity disabled',
+  routing_model_hint: 'Choose a model to include its eligibility and model-specific limits.',
+  routing_age: 'quota observed {{seconds}}s ago',
+  routing_refresh_error: 'Quota refresh failed; last observation retained',
+  routing_projection_hint:
+    'Projection simulates new unbound traffic using the displayed weekly windows. Pinned sessions, quota freshness and model-specific limits can change actual consumption. The ledger uses the backend snapshot.',
+  routing_saved: 'Soonest-reset-first routing enabled',
+  routing_save_failed: 'Could not update routing',
+  strategy_soonest_reset_first: 'Soonest reset first',
+  strategy_soonest_reset_first_desc:
+    'Within the highest usable priority tier, prefer reliable quota resetting soonest. Usable session bindings stay on their account. See Quota Overview for backend rankings.',
+  reason_quota_unavailable: 'Quota unavailable; deterministic fill-first fallback',
+  reason_no_eligible_accounts: 'No eligible accounts',
+  reason_strategy_not_predictable: 'This strategy has no next-account prediction',
+  reason_home_authoritative: 'Home controls routing; no local prediction',
+  reason_plugin_scheduler: 'A plugin controls routing; no local prediction',
+  reason_disabled: 'Disabled',
+  reason_model_unsupported: 'Model unsupported',
+  reason_unavailable: 'Unavailable',
+  reason_cooldown: 'Cooling down',
+  reason_quota_exhausted: 'Quota exhausted',
+  reason_fresh: 'Fresh quota',
+  reason_missing: 'Quota not observed',
+  reason_stale: 'Stale quota',
+  reason_malformed: 'Invalid quota data',
+  reason_expired: 'Quota window expired',
+  reason_unsupported: 'Quota not supported',
+  reason_unknown: 'Backend status unavailable',
   priority: 'P{{value}}',
   priority_hint: 'Routing priority: higher is used first',
   back_in: 'back in {{time}}',
@@ -109,4 +152,16 @@ const en = {
 
 for (const language of Object.keys(i18n.options.resources ?? {})) {
   i18n.addResourceBundle(language, 'translation', { pd_overview: en }, true, false);
+  i18n.addResourceBundle(
+    language,
+    'translation',
+    {
+      routing: {
+        strategy_soonest_reset_first: en.strategy_soonest_reset_first,
+        strategy_soonest_reset_first_desc: en.strategy_soonest_reset_first_desc,
+      },
+    },
+    true,
+    false
+  );
 }

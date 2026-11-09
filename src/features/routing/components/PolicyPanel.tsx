@@ -41,19 +41,23 @@ function StrategyMark({ strategy }: { strategy: RoutingStrategy }) {
 
 export function PolicyPanel({ settings, disabled = false, onChange }: PolicyPanelProps) {
   const { t } = useTranslation();
+  // Preserve the fork strategy when active. Enabling it is capability-gated in Quota Overview.
+  const strategies: readonly RoutingStrategy[] =
+    settings.strategy === 'soonest-reset-first'
+      ? [...ROUTING_STRATEGIES, 'soonest-reset-first']
+      : ROUTING_STRATEGIES;
   const id = useId();
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const update = (patch: Partial<RoutingSettings>) => onChange({ ...settings, ...patch });
 
   const selectStrategy = (index: number) => {
-    const strategy =
-      ROUTING_STRATEGIES[(index + ROUTING_STRATEGIES.length) % ROUTING_STRATEGIES.length];
+    const strategy = strategies[(index + strategies.length) % strategies.length];
     update({ strategy });
-    optionRefs.current[ROUTING_STRATEGIES.indexOf(strategy)]?.focus();
+    optionRefs.current[strategies.indexOf(strategy)]?.focus();
   };
 
   const handleStrategyKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const current = ROUTING_STRATEGIES.indexOf(settings.strategy);
+    const current = strategies.indexOf(settings.strategy);
     if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
       event.preventDefault();
       selectStrategy(current + 1);
@@ -93,7 +97,7 @@ export function PolicyPanel({ settings, disabled = false, onChange }: PolicyPane
           className={styles.strategyGroup}
           onKeyDown={handleStrategyKeyDown}
         >
-          {ROUTING_STRATEGIES.map((strategy, index) => {
+          {strategies.map((strategy, index) => {
             const checked = settings.strategy === strategy;
             return (
               <button
