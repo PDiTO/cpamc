@@ -33,30 +33,11 @@ const en = {
   other_limits: 'Other limits',
   first_in_line: 'Next new session',
   first_in_line_hint:
-    'The backend predicts this account for a new session in the selected model and transport context. Existing sessions may stay on another account.',
-  routing_title: 'Backend routing',
-  routing_enable: 'Use soonest reset first',
-  routing_scope:
-    'Rankings apply to new sessions. Usable existing sessions and WebSocket continuations keep their account through affinity.',
-  routing_fallback_hint:
-    'When a backend ranking is unavailable, the ledger uses priority and name for display and makes no next-account prediction.',
-  routing_model: 'Model',
-  routing_all_models: 'Provider-wide preview',
-  routing_transport: 'Request transport',
-  routing_preview: 'Preview',
-  routing_unsupported: 'Routing status unavailable on this backend',
-  routing_error: 'Could not read routing status',
-  routing_stale: 'Routing snapshot expired',
-  routing_loading: 'Loading routing status',
-  routing_affinity_on: 'Session affinity enabled',
-  routing_affinity_off: 'Session affinity disabled',
-  routing_model_hint: 'Choose a model to include its eligibility and model-specific limits.',
+    'Backend estimate for a new session across all models, using WebSocket for Codex and HTTP for other providers. Existing sessions and model-specific limits may use another account.',
   routing_age: 'quota observed {{seconds}}s ago',
   routing_refresh_error: 'Quota refresh failed; last observation retained',
   routing_projection_hint:
     'Projection simulates new unbound traffic using the displayed weekly windows. Pinned sessions, quota freshness and model-specific limits can change actual consumption. The ledger uses the backend snapshot.',
-  routing_saved: 'Soonest-reset-first routing enabled',
-  routing_save_failed: 'Could not update routing',
   strategy_soonest_reset_first: 'Soonest reset first',
   strategy_soonest_reset_first_desc:
     'Within the highest usable priority tier, prefer reliable quota resetting soonest. Usable session bindings stay on their account. See Quota Overview for backend rankings.',

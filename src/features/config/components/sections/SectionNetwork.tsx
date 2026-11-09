@@ -35,13 +35,11 @@ export function SectionNetwork({
       value: 'fill-first',
       label: t('config_management.visual.sections.network.strategy_fill_first'),
     },
-  ];
-  if (values.routingStrategy === 'soonest-reset-first') {
-    routingStrategyOptions.push({
+    {
       value: 'soonest-reset-first',
       label: t('pd_overview.strategy_soonest_reset_first'),
-    });
-  }
+    },
+  ];
 
   const disableImageGenerationOptions: Array<{ value: DisableImageGeneration; label: string }> = [
     {

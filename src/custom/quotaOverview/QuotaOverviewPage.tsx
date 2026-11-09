@@ -10,7 +10,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { authFilesApi } from '@/services/api';
-import { apiClient } from '@/services/api/client';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
@@ -73,8 +72,7 @@ import {
   type FutureUsage,
 } from './PoolChart';
 import { useClaudeTiers } from './useClaudeTiers';
-import { RoutingPanel } from './RoutingPanel';
-import { QUOTA_STRATEGY, routingAccountFor, type RoutingQuery } from './routing';
+import { QUOTA_STRATEGY, routingAccountFor } from './routing';
 import { useRoutingStatus } from './useRoutingStatus';
 import styles from './QuotaOverviewPage.module.scss';
 
@@ -273,11 +271,7 @@ export function QuotaOverviewPage() {
     () => [...new Set(entries.map((entry) => entry.type))].sort(),
     [entries]
   );
-  const [routingContexts, setRoutingContexts] = useState<Record<string, RoutingQuery>>({});
-  const { loads: routingLoads, refresh: refreshRouting } = useRoutingStatus(
-    providers.join(','),
-    routingContexts
-  );
+  const routingLoads = useRoutingStatus(providers.join(','));
   const credentials = useMemo(
     () =>
       entries.map((entry) => ({
@@ -379,27 +373,6 @@ export function QuotaOverviewPage() {
   const claudeTiers = useClaudeTiers(claudeFiles, connectionStatus === 'connected');
 
   const showNotification = useNotificationStore((state) => state.showNotification);
-  const [savingRouting, setSavingRouting] = useState(false);
-  const enableQuotaRouting = useCallback(async () => {
-    const revision = apiClient.getConnectionRevision();
-    const client = apiClient.captureConnection();
-    setSavingRouting(true);
-    try {
-      await client.put('/config/routing/strategy', QUOTA_STRATEGY);
-      if (revision !== apiClient.getConnectionRevision()) return;
-      useConfigStore.getState().clearCache('routing/strategy');
-      await fetchConfig(true);
-      if (revision !== apiClient.getConnectionRevision()) return;
-      refreshRouting();
-      showNotification(t('pd_overview.routing_saved'), 'success');
-    } catch {
-      if (revision === apiClient.getConnectionRevision()) {
-        showNotification(t('pd_overview.routing_save_failed'), 'error');
-      }
-    } finally {
-      setSavingRouting(false);
-    }
-  }, [fetchConfig, refreshRouting, showNotification, t]);
   const renameCredential = useCallback(
     async (file: AuthFileItem, note: string) => {
       try {
@@ -488,21 +461,6 @@ export function QuotaOverviewPage() {
         <div className={styles.errorBanner} role="alert">
           {error}
         </div>
-      )}
-
-      {providers.length > 0 && (
-        <RoutingPanel
-          providers={providers}
-          contexts={routingContexts}
-          loads={routingLoads}
-          nowMs={nowMs}
-          disabled={disableControls}
-          saving={savingRouting}
-          onContextChange={(query) =>
-            setRoutingContexts((previous) => ({ ...previous, [query.provider]: query }))
-          }
-          onEnable={() => void enableQuotaRouting()}
-        />
       )}
 
       {loading && entries.length === 0 ? (

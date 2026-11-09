@@ -141,7 +141,7 @@ describe('routing board rendering', () => {
     expect(card).toContain("const muted = state === 'disabled' || state === 'ineligible';");
   });
 
-  test('the strategy picker is a keyboard radio group', async () => {
+  test('the strategy picker is an accessible dropdown with its selected policy description', async () => {
     await i18n.changeLanguage('en');
     const html = renderToStaticMarkup(
       createElement(PolicyPanel, {
@@ -154,8 +154,10 @@ describe('routing board rendering', () => {
         onChange: () => {},
       })
     );
-    expect(html).toContain('role="radiogroup"');
-    expect(html).toMatch(/role="radio" aria-checked="true" tabindex="0"[^>]*>.*Weighted/);
+    expect(html).toContain('aria-haspopup="listbox"');
+    expect(html).toContain('aria-labelledby=');
+    expect(html).toContain('aria-describedby=');
+    expect(html).toContain('Weighted');
     expect(html).toContain('Requests are split across the tier by weight.');
   });
 

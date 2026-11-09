@@ -1,34 +1,23 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { apiClient } from '@/services/api/client';
 import { useAuthStore, useQuotaStore } from '@/stores';
-import {
-  defaultRoutingQuery,
-  normalizeRoutingSnapshot,
-  type RoutingLoads,
-  type RoutingQuery,
-} from './routing';
+import { defaultRoutingQuery, normalizeRoutingSnapshot, type RoutingLoads } from './routing';
 
 /** Reads cached backend decisions. This endpoint never probes providers. */
-export function useRoutingStatus(providerKey: string, contexts: Record<string, RoutingQuery>) {
+export function useRoutingStatus(providerKey: string) {
   const connected = useAuthStore((state) => state.connectionStatus === 'connected');
   const generation = useQuotaStore((state) => state.cacheGeneration);
   const apiBase = useAuthStore((state) => state.apiBase);
   const revision = apiClient.getConnectionRevision();
   const queries = useMemo(
-    () =>
-      providerKey
-        .split(',')
-        .filter(Boolean)
-        .map((provider) => contexts[provider] ?? defaultRoutingQuery(provider)),
-    [providerKey, contexts]
+    () => providerKey.split(',').filter(Boolean).map(defaultRoutingQuery),
+    [providerKey]
   );
   const scope = JSON.stringify([apiBase, revision, generation, queries, connected]);
   const [result, setResult] = useState<{ scope: string; loads: RoutingLoads }>({
     scope: '',
     loads: {},
   });
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = useCallback(() => setRefreshKey((value) => value + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,7 +67,7 @@ export function useRoutingStatus(providerKey: string, contexts: Record<string, R
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [connected, generation, queries, refreshKey, revision, scope]);
+  }, [connected, generation, queries, revision, scope]);
 
-  return { loads: result.scope === scope ? result.loads : {}, refresh };
+  return result.scope === scope ? result.loads : {};
 }

@@ -44,66 +44,6 @@
   font-size: 13px;
 }
 
-.routingPanel {
-  padding: 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-secondary);
-
-  p {
-    margin: 8px 0;
-    color: var(--text-secondary);
-    font-size: 12.5px;
-  }
-}
-
-.routingHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.routingProvider {
-  padding-top: 12px;
-  margin-top: 12px;
-  border-top: 1px solid var(--border-color);
-  font-size: 13px;
-}
-
-.routingContext {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin: 10px 0;
-
-  label {
-    display: grid;
-    gap: 5px;
-    color: var(--text-secondary);
-  }
-
-  input {
-    padding: 6px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-primary);
-    background: var(--bg-primary);
-    min-width: 0;
-    max-width: 100%;
-  }
-}
-
-.routingDetails {
-  display: flex;
-  gap: 8px 16px;
-  flex-wrap: wrap;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
 /* ---------- pool charts ---------- */
 
 .chartControls {
