@@ -39,7 +39,7 @@ const en = {
   routing_age: 'quota observed {{seconds}}s ago',
   routing_refresh_error: 'Quota refresh failed; last observation retained',
   routing_projection_hint:
-    'Projection simulates new unbound traffic using the displayed weekly windows. Pinned sessions, quota freshness and model-specific limits can change actual consumption. The ledger uses the backend snapshot.',
+    'Forecasts are estimates based on your usage settings.',
   strategy_soonest_reset_first: 'Soonest reset first',
   strategy_soonest_reset_first_desc:
     'Within the highest usable priority tier, prefer reliable quota resetting soonest. Usable session bindings stay on their account. See Quota Overview for backend rankings.',

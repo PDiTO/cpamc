@@ -563,7 +563,7 @@ export function QuotaOverviewPage() {
 
           <div className={styles.poolList}>
             {routingStrategy === QUOTA_STRATEGY && (
-              <p className={styles.routingDetails}>{t('pd_overview.routing_projection_hint')}</p>
+              <p className={styles.forecastHint}>{t('pd_overview.routing_projection_hint')}</p>
             )}
             {visiblePools.map((pool) => (
               <PoolChart

@@ -7,9 +7,8 @@
 
 import {
   useId,
-  useLayoutEffect,
+  useCallback,
   useMemo,
-  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
@@ -82,10 +81,10 @@ const niceCeil = (value: number) => {
 };
 
 function useElementWidth<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
   const [width, setWidth] = useState(0);
-  useLayoutEffect(() => {
-    const element = ref.current;
+  // The plot may mount only after quota loads. Observe each mounted element,
+  // rather than running an effect before the plot exists.
+  const ref = useCallback((element: T | null) => {
     if (!element) return;
     setWidth(element.clientWidth);
     const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
