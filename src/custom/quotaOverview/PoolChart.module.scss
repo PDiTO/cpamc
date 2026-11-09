@@ -39,8 +39,14 @@
 
 .hero {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 8px;
+}
+
+.heroSeparator {
+  font-size: 28px;
+  color: var(--text-tertiary, var(--text-secondary));
 }
 
 .heroValue {
@@ -50,6 +56,10 @@
   letter-spacing: -0.03em;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.providerText {
+  color: var(--pool-color);
 }
 
 .statList {
@@ -192,11 +202,6 @@
   color: var(--text-secondary);
 }
 
-.legendTitle {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
 .legendItem {
   display: inline-flex;
   align-items: center;
@@ -211,10 +216,6 @@
 
 .fableLegend {
   border-top-color: var(--fable-color);
-}
-
-.legendDashed {
-  border-top-style: dashed;
 }
 
 .legendNote {

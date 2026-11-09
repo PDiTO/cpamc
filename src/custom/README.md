@@ -51,9 +51,10 @@ The upstream sync workflow merges and verifies both sets of changes before relea
     reset under `soonest-reset-first`, and spread evenly otherwise. Projections simulate new
     unbound traffic using displayed windows. They do not predict the effect of live affinity
     bindings, future quota freshness or model-specific limits.
-  - Claude's Fable allowance has a separate purple history and projection line. It is never
+  - Claude's Fable allowance has a separate mustard history and projection line. It is never
     added to shared weekly capacity, and shared weekly and five-hour limits still apply.
-    Purple reset markers and credit badges identify Fable resets when the reported label
+    Both remaining totals appear together, with matching Claude and Fable legend keys.
+    Mustard reset markers and credit badges identify Fable resets when the reported label
     names Fable. Shared-window grants have a regular badge; unclear grants stay unclassified.
 
 ## Backend routing status

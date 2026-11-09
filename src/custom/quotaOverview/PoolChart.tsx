@@ -417,8 +417,25 @@ export function PoolChart({
         <>
           <div className={styles.stats}>
             <div className={styles.hero}>
-              <span className={styles.heroValue}>{Math.round(poolRemaining)}%</span>
-              <span className={styles.muted}>{t('pd_overview.of_total', { total })}</span>
+              <span className={`${styles.heroValue} ${hasFable ? styles.providerText : ''}`}>
+                {Math.round(poolRemaining)}%
+              </span>
+              {hasFable && fable.total !== total && (
+                <span className={styles.muted}>{t('pd_overview.of_total', { total })}</span>
+              )}
+              {hasFable && (
+                <>
+                  <span className={styles.heroSeparator} aria-hidden="true">
+                    /
+                  </span>
+                  <span className={`${styles.heroValue} ${styles.fableText}`}>
+                    {Math.round(fable.remaining)}%
+                  </span>
+                </>
+              )}
+              <span className={styles.muted}>
+                {t('pd_overview.of_total', { total: hasFable ? fable.total : total })}
+              </span>
             </div>
             <dl className={styles.statList}>
               <div>
@@ -708,10 +725,9 @@ export function PoolChart({
           </div>
 
           <footer className={styles.legend}>
-            <span className={styles.legendTitle}>
-              {mode === 'drain'
-                ? t('pd_overview.mode_drain')
-                : t(hasFable ? 'pd_overview.shared_weekly' : 'pd_overview.pool')}
+            <span className={styles.legendItem}>
+              <span className={styles.legendLine} aria-hidden="true" />
+              {providerLabel}
             </span>
             {hasFable && (
               <span
@@ -719,20 +735,9 @@ export function PoolChart({
                 title={t('pd_overview.fable_hint', { count: fableAccounts.length })}
               >
                 <span className={`${styles.legendLine} ${styles.fableLegend}`} aria-hidden="true" />
-                {t('pd_overview.fable_summary', {
-                  remaining: Math.round(fable.remaining),
-                  total: fable.total,
-                })}
+                {t('pd_overview.fable')}
               </span>
             )}
-            <span className={styles.legendItem}>
-              <span className={styles.legendLine} aria-hidden="true" />
-              {t('pd_overview.recorded')}
-            </span>
-            <span className={styles.legendItem}>
-              <span className={`${styles.legendLine} ${styles.legendDashed}`} aria-hidden="true" />
-              {t('pd_overview.projected')}
-            </span>
             {recorded.points.length === 0 && (
               <span className={styles.legendNote}>{t('pd_overview.history_hint')}</span>
             )}
