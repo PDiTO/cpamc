@@ -76,6 +76,31 @@ describe('quota history storage', () => {
 });
 
 describe('pool forecast', () => {
+  test('soonest-reset projection follows priority, then reset time, and changes after reset', () => {
+    const accounts = [
+      account({ name: 'a', resetAtMs: NOW + 8 * HOUR }),
+      account({ name: 'z', resetAtMs: NOW + HOUR }),
+    ];
+    const projection = projectPool({
+      accounts,
+      nowMs: NOW,
+      untilMs: NOW + 2 * HOUR,
+      burnPerHour: 10,
+      mode: 'soonest-reset-first',
+    });
+    expect(seriesValuesAt(projection.points, NOW + HOUR / 2)).toEqual([100, 95]);
+    // z's reset moves it a week ahead, so a takes new unbound traffic next.
+    expect(seriesValuesAt(projection.points, NOW + 1.5 * HOUR)).toEqual([95, 100]);
+    accounts[0].priority = 10;
+    const priority = projectPool({
+      accounts,
+      nowMs: NOW,
+      untilMs: NOW + HOUR / 2,
+      burnPerHour: 10,
+      mode: 'soonest-reset-first',
+    });
+    expect(seriesValuesAt(priority.points, NOW + HOUR / 2)).toEqual([95, 100]);
+  });
   test('recorded series draws a reset at its instant and labels the gain', () => {
     const a = account({
       name: 'a',

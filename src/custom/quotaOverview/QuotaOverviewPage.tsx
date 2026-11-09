@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { authFilesApi } from '@/services/api';
+import { apiClient } from '@/services/api/client';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
@@ -72,6 +73,9 @@ import {
   type FutureUsage,
 } from './PoolChart';
 import { useClaudeTiers } from './useClaudeTiers';
+import { RoutingPanel } from './RoutingPanel';
+import { QUOTA_STRATEGY, routingAccountFor, type RoutingQuery } from './routing';
+import { useRoutingStatus } from './useRoutingStatus';
 import styles from './QuotaOverviewPage.module.scss';
 
 const TAB_IDS: string[] = ['all', ...QUOTA_TAB_ORDER];
@@ -265,9 +269,22 @@ export function QuotaOverviewPage() {
   );
 
   const entries = useMemo(() => classifyQuotaFiles(files), [files]);
+  const providers = useMemo(
+    () => [...new Set(entries.map((entry) => entry.type))].sort(),
+    [entries]
+  );
+  const [routingContexts, setRoutingContexts] = useState<Record<string, RoutingQuery>>({});
+  const { loads: routingLoads, refresh: refreshRouting } = useRoutingStatus(
+    providers.join(','),
+    routingContexts
+  );
   const credentials = useMemo(
-    () => entries.map((entry) => buildOverviewCredential(entry, getQuota(entry), nowMs)),
-    [entries, getQuota, nowMs]
+    () =>
+      entries.map((entry) => ({
+        ...buildOverviewCredential(entry, getQuota(entry), nowMs),
+        routing: routingAccountFor(entry.file, entry.type, routingLoads, nowMs),
+      })),
+    [entries, getQuota, nowMs, routingLoads]
   );
   // Save each new weekly reading. Readings without an observation time (live
   // quota from providers that don't report one) are stamped when first seen.
@@ -299,7 +316,11 @@ export function QuotaOverviewPage() {
     if (connectionStatus === 'connected') fetchConfig().catch(() => {});
   }, [connectionStatus, fetchConfig]);
   const routingMode =
-    normalizeRoutingStrategy(routingStrategy) === 'fill-first' ? 'fill-first' : 'spread';
+    routingStrategy === QUOTA_STRATEGY
+      ? 'soonest-reset-first'
+      : normalizeRoutingStrategy(routingStrategy) === 'fill-first'
+        ? 'fill-first'
+        : 'spread';
 
   const [rangeOffset, setRangeOffset] = useState(0);
   const rangeStartMs = useMemo(() => {
@@ -356,6 +377,25 @@ export function QuotaOverviewPage() {
   const claudeTiers = useClaudeTiers(claudeFiles, connectionStatus === 'connected');
 
   const showNotification = useNotificationStore((state) => state.showNotification);
+  const [savingRouting, setSavingRouting] = useState(false);
+  const enableQuotaRouting = useCallback(async () => {
+    const revision = apiClient.getConnectionRevision();
+    const client = apiClient.captureConnection();
+    setSavingRouting(true);
+    try {
+      await client.put('/config/routing/strategy', QUOTA_STRATEGY);
+      if (revision !== apiClient.getConnectionRevision()) return;
+      await fetchConfig(true);
+      refreshRouting();
+      showNotification(t('pd_overview.routing_saved'), 'success');
+    } catch {
+      if (revision === apiClient.getConnectionRevision()) {
+        showNotification(t('pd_overview.routing_save_failed'), 'error');
+      }
+    } finally {
+      setSavingRouting(false);
+    }
+  }, [fetchConfig, refreshRouting, showNotification, t]);
   const renameCredential = useCallback(
     async (file: AuthFileItem, note: string) => {
       try {
@@ -444,6 +484,21 @@ export function QuotaOverviewPage() {
         <div className={styles.errorBanner} role="alert">
           {error}
         </div>
+      )}
+
+      {providers.length > 0 && (
+        <RoutingPanel
+          providers={providers}
+          contexts={routingContexts}
+          loads={routingLoads}
+          nowMs={nowMs}
+          disabled={disableControls}
+          saving={savingRouting}
+          onContextChange={(query) =>
+            setRoutingContexts((previous) => ({ ...previous, [query.provider]: query }))
+          }
+          onEnable={() => void enableQuotaRouting()}
+        />
       )}
 
       {loading && entries.length === 0 ? (
@@ -545,6 +600,9 @@ export function QuotaOverviewPage() {
           </div>
 
           <div className={styles.poolList}>
+            {routingStrategy === QUOTA_STRATEGY && (
+              <p className={styles.routingDetails}>{t('pd_overview.routing_projection_hint')}</p>
+            )}
             {visiblePools.map((pool) => (
               <PoolChart
                 key={pool.provider}
@@ -635,7 +693,9 @@ export function QuotaOverviewPage() {
                   credential={credential}
                   resolvedTheme={resolvedTheme}
                   nowMs={nowMs}
-                  firstInLine={firstNames.has(credential.entry.file.name)}
+                  firstInLine={firstNames.has(
+                    `${credential.entry.type}:${credential.entry.file.name}`
+                  )}
                   hideEmails={ui.hideEmails}
                   tier={
                     credential.entry.type === 'claude'

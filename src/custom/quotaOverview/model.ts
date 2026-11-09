@@ -16,6 +16,7 @@ import { getQuotaCacheKey } from '@/utils/quota/identity';
 import type { HistorySample, QuotaHistory } from './history';
 import { readPassiveQuota } from './passiveQuota';
 import type { PoolAccount } from './poolForecast';
+import type { RoutingAccount } from './routing';
 
 /** One limit on one credential, normalized to percent remaining. */
 export interface OverviewWindow {
@@ -48,6 +49,8 @@ export interface OverviewCredential {
   observedAtMs: number | null;
   /** The weekly reading as observed (before rolling past resets), for history. */
   sample: HistorySample | null;
+  /** Backend decision for the selected new-session request context, when available. */
+  routing?: RoutingAccount & { next: boolean };
 }
 
 export interface OverviewProviderPool {
@@ -229,10 +232,14 @@ export function buildOverviewCredential(
 }
 
 /**
- * The order `fill-first` routing tries credentials in: highest priority first,
- * then by credential id, which for file-backed credentials is the file name.
+ * Use backend rank within each provider when available. Without a backend
+ * snapshot, priority and name are only a display order.
  */
 export function compareRoutingOrder(a: OverviewCredential, b: OverviewCredential): number {
+  if (a.entry.type !== b.entry.type) return a.entry.type.localeCompare(b.entry.type);
+  const aRank = a.routing?.rank || Number.POSITIVE_INFINITY;
+  const bRank = b.routing?.rank || Number.POSITIVE_INFINITY;
+  if (aRank !== bRank) return aRank - bRank;
   if (a.priority !== b.priority) return b.priority - a.priority;
   return a.entry.file.name < b.entry.file.name ? -1 : a.entry.file.name > b.entry.file.name ? 1 : 0;
 }
@@ -244,16 +251,15 @@ export const isCredentialAvailable = (credential: OverviewCredential): boolean =
   credential.quota?.status !== 'error';
 
 /**
- * Per provider, the first available credential in routing order. New sessions
- * go there; existing sessions can stay on another credential through affinity.
+ * Only backend predictions mark an account as next for a new session.
+ * Names are provider-scoped so similarly named credentials cannot share a badge.
  */
 export function firstInLine(credentials: readonly OverviewCredential[]): Set<string> {
-  const picked = new Map<QuotaProviderType, string>();
-  [...credentials].sort(compareRoutingOrder).forEach((credential) => {
-    if (picked.has(credential.entry.type) || !isCredentialAvailable(credential)) return;
-    picked.set(credential.entry.type, credential.entry.file.name);
-  });
-  return new Set(picked.values());
+  return new Set(
+    credentials
+      .filter((credential) => credential.routing?.next && credential.routing.eligible)
+      .map((credential) => `${credential.entry.type}:${credential.entry.file.name}`)
+  );
 }
 
 export const OVERVIEW_SORT_MODES = ['routing', 'soonest', 'remaining', 'name'] as const;
