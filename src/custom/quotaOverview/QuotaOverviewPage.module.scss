@@ -261,7 +261,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: minmax(230px, 1.2fr) minmax(0, 3fr) minmax(200px, 0.9fr) 36px;
+  grid-template-columns: minmax(230px, 1.2fr) minmax(0, 3fr) minmax(260px, 0.9fr) 36px;
   gap: 18px;
   align-items: center;
   padding: 14px 18px;
@@ -276,7 +276,7 @@
   }
 
   @media (max-width: 1100px) {
-    grid-template-columns: 1fr 36px;
+    grid-template-columns: minmax(0, 1fr) 36px;
     gap: 12px;
 
     > :not(:last-child) {
@@ -306,6 +306,7 @@
 
 .rowResets {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   min-width: 0;
@@ -313,7 +314,7 @@
 
 .resetList {
   display: grid;
-  grid-template-columns: max-content max-content max-content;
+  grid-template-columns: max-content max-content max-content max-content;
   gap: 3px 12px;
   margin: 0;
   padding: 0;
@@ -341,6 +342,14 @@
 
 .resetCount {
   font-weight: 600;
+}
+
+.resetScope {
+  font-weight: 600;
+}
+
+.fableScope {
+  color: var(--fable-color);
 }
 
 .urgencyWeek .resetLeft {

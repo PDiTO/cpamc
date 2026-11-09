@@ -1,9 +1,16 @@
 import { describe, expect, test } from 'bun:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import i18n from '@/i18n';
+import '@/custom/i18n';
+import { ResetsCell } from '@/custom/quotaOverview/components';
 import {
   backAtMs,
   buildOverviewCredential,
   buildProviderPools,
   historyKey,
+  FABLE_WINDOW_ID,
+  resetGrantKind,
   credentialLabel,
   maskEmails,
   resetUrgency,
@@ -157,6 +164,95 @@ describe('quota overview model', () => {
     expect(formatCountdown(NOW + 51 * HOUR, NOW)).toBe('2d 3h');
     expect(formatCountdown(NOW + 4.5 * HOUR, NOW)).toBe('4h 30m');
     expect(formatCountdown(NOW + 12 * 60_000, NOW)).toBe('12m');
+  });
+
+  test('Fable allowance and history remain separate from shared weekly quota', () => {
+    const c = credential('a.json', claudeQuota(30, 0, NOW + 48 * HOUR));
+    const fable = c.windows.find((w) => w.id === FABLE_WINDOW_ID)!;
+    fable.remaining = 20;
+    const sharedKey = historyKey('claude', 'a.json');
+    const fableKey = historyKey('claude', 'a.json', FABLE_WINDOW_ID);
+    expect(fableKey).not.toBe(sharedKey);
+    const history = {
+      [sharedKey]: [[NOW - HOUR, 75, null]],
+      [fableKey]: [[NOW - HOUR, 25, null]],
+    } as const;
+    const [pool] = buildProviderPools([c], ['claude'], history as never);
+    expect(pool.accounts[0].remaining).toBe(70);
+    expect(pool.fableAccounts[0].remaining).toBe(20);
+    expect(pool.accounts[0].samples[0][1]).toBe(75);
+    expect(pool.fableAccounts[0].samples[0][1]).toBe(25);
+    expect(pool.fableAccounts[0].resetAtMs).toBe(NOW + 48 * HOUR);
+  });
+
+  test('missing Fable windows do not invent extra allowance', () => {
+    const c = credential('a.json', claudeQuota(30, 0, NOW + 48 * HOUR));
+    c.windows = c.windows.filter((w) => w.id !== FABLE_WINDOW_ID);
+    const [pool] = buildProviderPools([c], ['claude'], {});
+    expect(pool.fableAccounts).toEqual([]);
+    expect(pool.accounts).toHaveLength(1);
+  });
+
+  test('Fable history uses its own observation time and retains the pre-reset reading', () => {
+    const quota = {
+      ...claudeQuota(30, 0, NOW - HOUR),
+      observedAt: new Date(NOW - 2 * HOUR).toISOString(),
+    } as QuotaCardState;
+    (quota as { windows: { usedPercent: number }[] }).windows[2].usedPercent = 60;
+    const c = credential('a.json', quota);
+    expect(c.fableSample).toEqual([NOW - 2 * HOUR, 40, NOW - HOUR]);
+    expect(c.fableObservedAtMs).toBe(NOW - 2 * HOUR);
+    expect(c.windows.find((w) => w.id === FABLE_WINDOW_ID)?.remaining).toBe(100);
+    expect(c.windows.find((w) => w.id === FABLE_WINDOW_ID)?.resetAtMs).toBeGreaterThan(NOW);
+  });
+
+  test('newer shared headers do not give an old Fable reading a new timestamp', () => {
+    const quota = {
+      ...claudeQuota(30, 0, NOW + 48 * HOUR),
+      observedAt: new Date(NOW - 2 * HOUR).toISOString(),
+    } as QuotaCardState;
+    const c = credential('a.json', quota, {
+      quota: {
+        observed_at: new Date(NOW - HOUR).toISOString(),
+        signals: {
+          'Anthropic-Ratelimit-Unified-7d-Utilization': '0.42',
+          'Anthropic-Ratelimit-Unified-7d-Reset': String((NOW + 48 * HOUR) / 1000),
+        },
+      },
+    } as unknown as Partial<AuthFileItem>);
+    expect(c.sample?.slice(0, 2)).toEqual([NOW - HOUR, 58]);
+    expect(c.fableSample?.slice(0, 2)).toEqual([NOW - 2 * HOUR, 100]);
+    expect(c.fableObservedAtMs).toBe(NOW - 2 * HOUR);
+  });
+
+  test('reset scope follows reported Fable labels or shared windows, never guessed IDs', () => {
+    expect(resetGrantKind({ label: 'Fable 5 reset', clears: ['seven_day'] })).toBe('fable');
+    expect(resetGrantKind({ label: 'Regular reset', clears: ['five_hour', 'seven_day'] })).toBe(
+      'shared'
+    );
+    expect(resetGrantKind({ label: '', clears: ['seven_day_overage_included'] })).toBe('unknown');
+    expect(resetGrantKind({ label: 'Available reset', clears: [] })).toBe('unknown');
+  });
+
+  test('reset credits show their scope without activating redemption', () => {
+    const html = renderToStaticMarkup(
+      createElement(ResetsCell, {
+        credits: [
+          { id: 'a', count: 1, label: 'Fable', expiresAtMs: null, kind: 'fable' },
+          { id: 'b', count: 2, label: 'Regular', expiresAtMs: null, kind: 'shared' },
+          { id: 'c', count: 1, label: null, expiresAtMs: null, kind: 'unknown' },
+        ],
+        nowMs: NOW,
+        canUse: false,
+        onUse: () => {
+          throw new Error('render must not redeem a reset');
+        },
+      })
+    );
+    for (const scope of ['fable', 'shared', 'unknown']) {
+      expect(html).toContain(i18n.t(`pd_overview.reset_${scope}`));
+    }
+    expect(html).toContain('disabled');
   });
 
   test('masks email local parts and prefers the account note', () => {

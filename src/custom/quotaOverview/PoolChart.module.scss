@@ -109,7 +109,7 @@
 .line {
   fill: none;
   stroke: var(--pool-color);
-  stroke-width: 2;
+  stroke-width: 3;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
@@ -118,8 +118,16 @@
   stroke-dasharray: 6 5;
 }
 
+.fableLine {
+  stroke: var(--fable-color);
+}
+
+.fableText {
+  color: var(--fable-color);
+}
+
 .jump {
-  fill: var(--text-secondary);
+  fill: var(--pool-color);
   font-size: 11.5px;
   font-weight: 550;
   font-variant-numeric: tabular-nums;
@@ -128,6 +136,10 @@
   stroke: var(--bg-primary);
   stroke-width: 3px;
   stroke-linejoin: round;
+}
+
+.fableJump {
+  fill: var(--fable-color);
 }
 
 .nowLine {
@@ -146,6 +158,10 @@
   fill: var(--pool-color);
   stroke: var(--bg-primary);
   stroke-width: 2;
+}
+
+.fableDot {
+  fill: var(--fable-color);
 }
 
 .tooltip {
@@ -190,7 +206,11 @@
 .legendLine {
   width: 18px;
   height: 0;
-  border-top: 2px solid var(--pool-color);
+  border-top: 3px solid var(--pool-color);
+}
+
+.fableLegend {
+  border-top-color: var(--fable-color);
 }
 
 .legendDashed {

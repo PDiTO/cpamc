@@ -286,14 +286,22 @@ export function QuotaOverviewPage() {
   useEffect(() => {
     if (!apiBase) return;
     credentials.forEach((credential) => {
-      if (!credential.sample) return;
-      const [, remaining, resetAtMs] = credential.sample;
-      const at = credential.observedAtMs ?? firstSeenMs(credential.quota ?? credential);
-      recordSample(
-        apiBase,
-        historyKey(credential.entry.type, getQuotaCacheKey(credential.entry.file)),
-        [at, remaining, resetAtMs]
-      );
+      const save = (
+        sample: typeof credential.sample,
+        observedAt: number | null,
+        windowId?: string
+      ) => {
+        if (!sample) return;
+        const [, remaining, resetAtMs] = sample;
+        const at = observedAt ?? firstSeenMs(credential.quota ?? credential);
+        recordSample(
+          apiBase,
+          historyKey(credential.entry.type, getQuotaCacheKey(credential.entry.file), windowId),
+          [at, remaining, resetAtMs]
+        );
+      };
+      save(credential.sample, credential.observedAtMs);
+      save(credential.fableSample, credential.fableObservedAtMs, 'seven-day-fable');
     });
   }, [apiBase, credentials]);
   const history = useQuotaHistory();
@@ -570,6 +578,7 @@ export function QuotaOverviewPage() {
                 key={pool.provider}
                 provider={pool.provider}
                 accounts={pool.accounts}
+                fableAccounts={pool.fableAccounts}
                 credentialCount={pool.credentialCount}
                 nowMs={nowMs}
                 rangeStartMs={rangeStartMs}

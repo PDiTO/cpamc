@@ -38,8 +38,7 @@ const en = {
     'Backend estimate for a new session across all models, using WebSocket for Codex and HTTP for other providers. Existing sessions and model-specific limits may use another account.',
   routing_age: 'quota observed {{seconds}}s ago',
   routing_refresh_error: 'Quota refresh failed; last observation retained',
-  routing_projection_hint:
-    'Forecasts are estimates based on your usage settings.',
+  routing_projection_hint: 'Forecasts are estimates based on your usage settings.',
   strategy_soonest_reset_first: 'Soonest reset first',
   strategy_soonest_reset_first_desc:
     'Within the highest usable priority tier, prefer reliable quota resetting soonest. Usable session bindings stay on their account. See Quota Overview for backend rankings.',
@@ -112,6 +111,16 @@ const en = {
   seen_hint: "Read by CLIProxy from this account's last proxied request",
   now: 'Now',
   pool: 'Pool',
+  fable: 'Fable',
+  shared_weekly: 'Weekly',
+  reset_jump: '{{scope}} +{{gain}}%',
+  fable_summary: 'Fable {{remaining}}% of {{total}}%',
+  fable_hint:
+    'Fable allowance across {{count}} loaded accounts, shown separately. Shared weekly and five-hour limits also apply. Each line projects its own observed usage.',
+  reset_fable: 'Fable',
+  reset_shared: 'Shared',
+  reset_unknown: 'Reset',
+  reset_scope_unknown: 'Reset scope was not reported',
   recorded: 'Recorded',
   projected: 'Projected',
   chart_label:
