@@ -24,10 +24,6 @@ The upstream sync workflow merges and verifies both sets of changes before relea
   edit upstream locale files.
 - Reuse upstream data hooks, stores and components by importing them. If an upstream rename
   breaks the build, fix the import here rather than editing upstream code.
-- One temporary exception: `tests/authFileCooldowns.test.ts` pins its i18n language and compares
-  the reset hint as React escapes it. Upstream's version passes or fails depending on which test
-  files ran first. Drop the fork's change once upstream fixes the test; if a merge conflicts
-  there, take upstream's version and reapply the fix only if the test still depends on order.
 
 ## Pages
 
