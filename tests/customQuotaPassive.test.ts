@@ -172,6 +172,71 @@ describe('passive quota from CLIProxy observations', () => {
     ]);
   });
 
+  describe('within one weekly cycle the percentage never bounces back up', () => {
+    // The usage endpoint reports the reset with sub-second precision; headers use whole seconds.
+    const RESET = NOW + 48 * HOUR;
+    const liveWeekly = (usedPercent: number, observedAt: number, resetAtMs = RESET - 425) =>
+      ({
+        status: 'success',
+        observedAt: new Date(observedAt).toISOString(),
+        windows: [{ id: 'seven-day', label: '7d', usedPercent, resetAtMs, periodHours: 168 }],
+      }) as unknown as QuotaCardState;
+    const headers = (utilization: string, observedAt: number, reset = RESET) =>
+      fileWith(
+        'claude',
+        {
+          'Anthropic-Ratelimit-Unified-7d-Utilization': utilization,
+          'Anthropic-Ratelimit-Unified-7d-Reset': seconds(reset),
+        },
+        observedAt
+      );
+    const weekly = (file: AuthFileItem, live: QuotaCardState) => {
+      const credential = buildOverviewCredential({ type: 'claude', file }, live, NOW);
+      return [credential.source, credential.primary?.remaining, credential.sample?.[1]];
+    };
+
+    test('a newer header rounded a point lower keeps the probe percentage', () => {
+      expect(weekly(headers('0.2', NOW - HOUR), liveWeekly(21, NOW - 2 * HOUR))).toEqual([
+        'proxy',
+        79,
+        79,
+      ]);
+    });
+
+    test('a newer header showing more usage moves the percentage down', () => {
+      expect(weekly(headers('0.22', NOW - HOUR), liveWeekly(21, NOW - 2 * HOUR))).toEqual([
+        'proxy',
+        78,
+        78,
+      ]);
+    });
+
+    test('a newer probe never shows less usage than an older header', () => {
+      expect(weekly(headers('0.6', NOW - 2 * HOUR), liveWeekly(59, NOW - HOUR))).toEqual([
+        'live',
+        40,
+        40,
+      ]);
+    });
+
+    test('a larger drop in the same cycle, such as a spent reset grant, shows the newer reading', () => {
+      expect(weekly(headers('0.05', NOW - HOUR), liveWeekly(60, NOW - 2 * HOUR))).toEqual([
+        'proxy',
+        95,
+        95,
+      ]);
+    });
+
+    test('across a reset the newer reading wins', () => {
+      const beforeReset = liveWeekly(90, NOW - 3 * HOUR, NOW - 2 * HOUR);
+      expect(weekly(headers('0.05', NOW - HOUR, NOW + 166 * HOUR), beforeReset)).toEqual([
+        'proxy',
+        95,
+        95,
+      ]);
+    });
+  });
+
   test('readings taken before a reset count as full, with the next reset', () => {
     const [rolled] = rollPastResets(
       [{ id: 'seven-day', label: '', remaining: 20, resetAtMs: NOW - HOUR, periodHours: 168 }],
