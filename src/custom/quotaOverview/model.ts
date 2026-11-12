@@ -207,6 +207,29 @@ export function rollPastResets(
   });
 }
 
+/**
+ * Resets this close together are the same cycle. The usage endpoint and the
+ * response headers report the same instant with different precision.
+ */
+const SAME_CYCLE_TOLERANCE_MS = 5 * 60_000;
+/** The two sources round the same usage at most about a point apart. */
+const ROUNDING_GAP_PERCENT = 2;
+
+/**
+ * The usage endpoint and the rate-limit headers round the same usage about a
+ * point apart, so picking the newer reading alone makes the percentage bounce
+ * between them. Within one cycle usage only rises: keep the older reading when
+ * it shows slightly more usage. Across a reset, or after a larger drop such as
+ * a spent reset grant, the newer reading wins.
+ */
+export function reconcileWindow(newer: OverviewWindow, older: OverviewWindow): OverviewWindow {
+  if (newer.remaining === null || older.remaining === null) return newer;
+  if (newer.resetAtMs === null || older.resetAtMs === null) return newer;
+  if (Math.abs(newer.resetAtMs - older.resetAtMs) > SAME_CYCLE_TOLERANCE_MS) return newer;
+  const gap = newer.remaining - older.remaining;
+  return gap > 0 && gap <= ROUNDING_GAP_PERCENT ? { ...newer, remaining: older.remaining } : newer;
+}
+
 export function buildOverviewCredential(
   entry: QuotaFileEntry,
   quota: QuotaCardState | undefined,
@@ -215,15 +238,21 @@ export function buildOverviewCredential(
   const live = overviewWindows(entry.type, quota, entry.file.name);
   const liveAt = live.length > 0 ? liveObservedAtMs(quota) : null;
   const passive = readPassiveQuota(entry.type, entry.file);
-  let observed = live;
+  const passiveById = new Map((passive?.windows ?? []).map((window) => [window.id, window]));
+  let observed = live.map((window) => {
+    const other = passiveById.get(window.id);
+    return other ? reconcileWindow(window, other) : window;
+  });
   let source: OverviewCredential['source'] = live.length > 0 ? 'live' : null;
   let observedAtMs = liveAt;
   // Prefer whichever reading is newer; the proxy's lacks some limits, so keep
   // the live ones it doesn't report.
   if (passive && (liveAt === null || passive.observedAtMs > liveAt)) {
-    const byId = new Map(passive.windows.map((window) => [window.id, window]));
     observed = [
-      ...live.map((window) => byId.get(window.id) ?? window),
+      ...live.map((window) => {
+        const newer = passiveById.get(window.id);
+        return newer ? reconcileWindow(newer, window) : window;
+      }),
       ...passive.windows.filter((window) => !live.some((own) => own.id === window.id)),
     ];
     source = 'proxy';
