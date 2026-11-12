@@ -59,6 +59,7 @@ import {
   CHART_MODES,
   FUTURE_USAGE,
   PoolChart,
+  providerChartColor,
   type BurnWindow,
   type ChartMode,
   type FutureUsage,
@@ -696,6 +697,7 @@ export function QuotaOverviewPage() {
             quotaFor={getQuota}
             displayNameFor={displayNameFor}
             resolvedTheme={resolvedTheme}
+            accentFor={(provider) => providerChartColor(provider, resolvedTheme)}
           />
         </>
       )}

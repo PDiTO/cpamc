@@ -8,6 +8,7 @@ import {
   sampleDotTargets,
   type DotGrid,
 } from './dotMatrixField';
+import { BRAND_HERO_TITLE } from '@/custom/brand';
 import styles from './DotMatrixHero.module.scss';
 
 /** 点色取自 CSS 变量 --login-dot-color（随主题切换），读取失败时回退到深色版点色 */
@@ -18,8 +19,24 @@ const COMPACT_QUERY = '(max-width: 768px)';
 
 const readDotColor = (element: Element) =>
   getComputedStyle(element).getPropertyValue('--login-dot-color').trim() || FALLBACK_DOT_COLOR;
+
+/** Dot fill: a top-to-bottom gradient when the theme sets --login-dot-color-end, else one color. */
+type DotPaint = string | CanvasGradient;
+const readDotPaint = (
+  element: Element,
+  context: CanvasRenderingContext2D,
+  height: number
+): DotPaint => {
+  const start = readDotColor(element);
+  const end = getComputedStyle(element).getPropertyValue('--login-dot-color-end').trim();
+  if (!end || height <= 0) return start;
+  const gradient = context.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, start);
+  gradient.addColorStop(1, end);
+  return gradient;
+};
 /** 品牌标语：按设计要求在所有语言下统一使用英文，不走 i18n */
-export const HERO_TITLE = 'Welcome to CLI Proxy API.';
+export const HERO_TITLE = BRAND_HERO_TITLE;
 const FRAME_INTERVAL_MS = 1000 / 30;
 /** 减少动效模式下展示的固定时刻（秒），避开入场阶段 */
 const STATIC_TIME = 4;
@@ -29,7 +46,7 @@ function paintIntro(
   grid: DotGrid,
   targets: Float32Array,
   elapsed: number,
-  color: string
+  color: DotPaint
 ) {
   context.clearRect(0, 0, grid.width, grid.height);
   context.fillStyle = color;
@@ -48,7 +65,7 @@ function paintSteady(
   context: CanvasRenderingContext2D,
   grid: DotGrid,
   targets: Float32Array,
-  color: string
+  color: DotPaint
 ) {
   context.clearRect(0, 0, grid.width, grid.height);
   context.fillStyle = color;
@@ -81,7 +98,7 @@ export function DotMatrixHero() {
     let startTime: number | null = null;
     let lastPaint = -Infinity;
     let clock = 0;
-    let dotColor = readDotColor(canvas);
+    let dotColor: DotPaint = readDotColor(canvas);
 
     const render = (time: number, intro: boolean) => {
       sampleDotTargets(grid, time, targets);
@@ -94,7 +111,7 @@ export function DotMatrixHero() {
       typeof MutationObserver === 'undefined'
         ? null
         : new MutationObserver(() => {
-            dotColor = readDotColor(canvas);
+            dotColor = readDotPaint(canvas, context, grid.height);
             if (reduced) render(STATIC_TIME, false);
             else render(clock, clock < grid.introDuration);
           });
@@ -137,6 +154,7 @@ export function DotMatrixHero() {
         origin: compact ? 'top-right' : 'bottom-right',
       });
       targets = new Float32Array(grid.columns * grid.rows);
+      dotColor = readDotPaint(canvas, context, grid.height);
       if (reduced) {
         render(STATIC_TIME, false);
       } else {
