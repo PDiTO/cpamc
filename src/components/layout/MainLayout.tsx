@@ -32,7 +32,6 @@ import {
   IconSidebarSystem,
   IconChevronDown,
 } from '@/components/ui/icons';
-import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import {
   useAuthStore,
   useLoginTransitionStore,
@@ -55,6 +54,7 @@ import { isSupportedLanguage } from '@/utils/language';
 import { getSidebarShortcutLabel, isSidebarToggleShortcut } from '@/utils/sidebarShortcut';
 import type { Theme } from '@/types';
 import { customObserveNavItems } from '@/custom';
+import { BRAND_ICON, BRAND_NAME } from '@/custom/brand';
 
 const sidebarIcons: Record<string, ReactNode> = {
   dashboard: <IconSidebarDashboard size={18} />,
@@ -353,7 +353,7 @@ export function MainLayout() {
   const themeMenuRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
 
-  const fullBrandName = 'CLI Proxy API Management Center';
+  const fullBrandName = BRAND_NAME;
   const abbrBrandName = t('title.abbr');
   const arrivingFromLogin = useLoginTransitionStore((state) => state.phase === 'revealing');
   const isLogsPage = location.pathname.startsWith('/logs');
@@ -1164,7 +1164,7 @@ export function MainLayout() {
         >
           <div className="sidebar-header">
             <div className="sidebar-brand" title={fullBrandName}>
-              <img src={INLINE_LOGO_JPEG} alt="CPAMC logo" className="sidebar-brand-logo" />
+              <img src={BRAND_ICON} alt={`${BRAND_NAME} logo`} className="sidebar-brand-logo" />
               {showSidebarLabels && (
                 <span className="sidebar-brand-text">
                   <span className="sidebar-brand-title">{abbrBrandName}</span>

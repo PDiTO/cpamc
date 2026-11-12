@@ -55,6 +55,8 @@ export interface QuotaTimelineProps {
   quotaFor: (entry: QuotaFileEntry) => QuotaCardState | undefined;
   displayNameFor: (name: string) => string;
   resolvedTheme: ResolvedTheme;
+  /** Optional lane color per provider; falls back to the shared provider palette. */
+  accentFor?: (provider: TimelineLane['provider']) => string | undefined;
   /** Injectable for tests/screenshots; defaults to the real clock. */
   now?: number;
   /** Injectable initial zoom for tests/screenshots; defaults to the weekly view. */
@@ -68,6 +70,7 @@ export function QuotaTimeline({
   quotaFor,
   displayNameFor,
   resolvedTheme,
+  accentFor,
   now: nowProp,
   initialMode = 'weekly',
   initialOffset = 0,
@@ -273,6 +276,7 @@ export function QuotaTimeline({
                 cells={cells}
                 nowPercent={nowPercent}
                 resolvedTheme={resolvedTheme}
+                accentFor={accentFor}
               />
             ))}
           </>
@@ -324,9 +328,10 @@ interface LaneProps {
   cells: { at: number; isWeekend: boolean; isDayStart: boolean }[];
   nowPercent: number | null;
   resolvedTheme: ResolvedTheme;
+  accentFor?: QuotaTimelineProps['accentFor'];
 }
 
-function Lane({ lane, span, now, mode, cells, nowPercent, resolvedTheme }: LaneProps) {
+function Lane({ lane, span, now, mode, cells, nowPercent, resolvedTheme, accentFor }: LaneProps) {
   const { t, i18n } = useTranslation();
 
   const windows = useMemo(
@@ -341,6 +346,7 @@ function Lane({ lane, span, now, mode, cells, nowPercent, resolvedTheme }: LaneP
   const colorSet = TYPE_COLORS[lane.provider] || TYPE_COLORS.unknown;
   const color: ThemeColors =
     resolvedTheme === 'dark' && colorSet.dark ? colorSet.dark : colorSet.light;
+  const accent = accentFor?.(lane.provider) ?? color.text;
 
   // Sub-day windows are labelled in hours — rounding 5h to days gives "0d".
   const periodLabel =
@@ -353,7 +359,7 @@ function Lane({ lane, span, now, mode, cells, nowPercent, resolvedTheme }: LaneP
           : `${Math.round(lane.periodHours / 24)}d`;
 
   return (
-    <div className={styles.lane} style={{ '--provider-accent': color.text } as CSSProperties}>
+    <div className={styles.lane} style={{ '--provider-accent': accent } as CSSProperties}>
       <div className={styles.laneHead}>
         <div className={styles.laneTop}>
           <span className={styles.laneDot} />

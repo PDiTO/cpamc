@@ -22,6 +22,15 @@ The upstream sync workflow merges and verifies both sets of changes before relea
 - Text strings are registered at runtime in `src/custom/i18n.ts` under `pd_overview.*`,
   plus the routing editor's two custom strategy labels. Do not
   edit upstream locale files.
+- The dashboard is branded **Prox**. `src/custom/brand.ts` holds the name and icon and overrides
+  the brand-name locale keys at runtime. Upstream files that hard-code the name or logo
+  (`index.html`, `main.tsx`, `LoginPage.tsx`, `DotMatrixHero.tsx`, `MainLayout.tsx`,
+  `SystemPage.tsx`) import `BRAND_NAME` and `BRAND_ICON` instead. The icon's source files live
+  in `brand/` at the repository root. The login and splash screens use brand colors set
+  directly in upstream's `src/pages/login/_palette.scss` and `LoginRevealVeil.scss` (upstream's
+  contrast tests read those files). `DotMatrixHero.tsx` paints the dot field as a gradient when
+  the palette sets `--login-dot-color-end`. Upstream's `src/assets/logoInline.ts` is left in place
+  but unused, so upstream edits to it merge cleanly. Strings naming the backend, CLI Proxy API, stay as they are.
 - Reuse upstream data hooks, stores and components by importing them. If an upstream rename
   breaks the build, fix the import here rather than editing upstream code.
 

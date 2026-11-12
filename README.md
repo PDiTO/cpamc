@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="./logo.jpg" alt="CLI Proxy API" width="144">
+<img src="./brand/prox-icon.svg" alt="Prox" width="144">
 
-# CLI Proxy API Management Center
+# Prox
 
 **Your proxy, at a glance. Your configuration, in control.**
 

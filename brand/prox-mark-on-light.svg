@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Prox</title>
+  <defs>
+    <mask id="lines" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <path d="M7 19 H11.5 Q14 19 16.5 20.75 L30.1 30.25 Q32.6 32 35.1 32 H57" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 45 H11.5 Q14 45 16.5 43.25 L30.1 33.75 Q32.6 32 35.1 32 H57" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+    <linearGradient id="blend" gradientUnits="userSpaceOnUse" x1="0" y1="27" x2="0" y2="37">
+      <stop offset="0" stop-color="#4d8dff"/>
+      <stop offset="1" stop-color="#f2783a"/>
+    </linearGradient>
+    <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="26" y1="0" x2="52" y2="0">
+      <stop offset="0" stop-color="#141821" stop-opacity="0"/>
+      <stop offset="1" stop-color="#141821"/>
+    </linearGradient>
+  </defs>
+  <g mask="url(#lines)">
+    <rect width="64" height="64" fill="url(#blend)"/>
+    <rect width="64" height="64" fill="url(#fade)"/>
+  </g>
+</svg>

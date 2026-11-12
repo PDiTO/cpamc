@@ -68,6 +68,10 @@ const FALLBACK_COLOR: [string, string] = ['#52514e', '#c3c2b7'];
 const pick = ([light, dark]: [string, string], theme: ResolvedTheme) =>
   theme === 'dark' ? dark : light;
 
+/** The pool chart's line color for a provider, shared with the quota-window timeline. */
+export const providerChartColor = (provider: QuotaProviderType, theme: ResolvedTheme) =>
+  pick(PROVIDER_COLORS[provider] ?? FALLBACK_COLOR, theme);
+
 const formatWhen = (ms: number, locale: string) =>
   new Date(ms).toLocaleString(locale, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
 
@@ -203,7 +207,7 @@ export function PoolChart({
   const y = (value: number) => MARGIN.top + plotH - (value / yMax) * plotH;
   const baseline = MARGIN.top + plotH;
 
-  const color = pick(PROVIDER_COLORS[provider] ?? FALLBACK_COLOR, resolvedTheme);
+  const color = providerChartColor(provider, resolvedTheme);
   const uid = useId().replace(/:/g, '');
 
   /** The pooled line: accounts summed at each point. */
