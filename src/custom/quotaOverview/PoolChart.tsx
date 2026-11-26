@@ -414,11 +414,7 @@ export function PoolChart({
           } as CSSProperties;
           const head = (
             <span className={styles.statHead}>
-              {item?.fable ? (
-                <span className={styles.swatch} aria-hidden="true" />
-              ) : (
-                <ProviderIcon provider={tile.provider} resolvedTheme={resolvedTheme} />
-              )}
+              <ProviderIcon provider={tile.provider} resolvedTheme={resolvedTheme} />
               <span className={styles.statName}>{tile.label}</span>
             </span>
           );
