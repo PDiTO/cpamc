@@ -84,7 +84,7 @@ describe('pool chart summary tiles', () => {
     expect(codexTile).toContain('of 200%');
   });
 
-  test('keeps provider line colors and logos, with Fable in its own color', () => {
+  test('keeps provider line colors and logos, with Fable in its own color and the Claude logo', () => {
     const html = render();
     const [claudeTile, fableTile, codexTile] = tiles(html);
     expect(claudeTile).toContain(`--series-color:${providerChartColor('claude', 'light')}`);
@@ -92,6 +92,7 @@ describe('pool chart summary tiles', () => {
     expect(codexTile).toContain(`--series-color:${providerChartColor('codex', 'light')}`);
     expect(codexTile).toContain('<img');
     expect(fableTile).toContain(`--series-color:${fableColor('light')}`);
+    expect(fableTile).toContain('<img');
   });
 
   test('marks hidden lines as unpressed and keeps the rest pressed', () => {

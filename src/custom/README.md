@@ -31,6 +31,9 @@ The upstream sync workflow merges and verifies both sets of changes before relea
   contrast tests read those files). `DotMatrixHero.tsx` paints the dot field as a gradient when
   the palette sets `--login-dot-color-end`. Upstream's `src/assets/logoInline.ts` is left in place
   but unused, so upstream edits to it merge cleanly. Strings naming the backend, CLI Proxy API, stay as they are.
+- `src/assets/icons/codex.svg` is edited in place: the white rounded tile behind the logo is
+  removed and the view box is cropped to the logo. This changes the logo everywhere upstream
+  uses it. If upstream replaces the file, take theirs and remove the tile again.
 - Reuse upstream data hooks, stores and components by importing them. If an upstream rename
   breaks the build, fix the import here rather than editing upstream code.
 
