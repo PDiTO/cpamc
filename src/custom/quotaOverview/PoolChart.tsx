@@ -420,7 +420,6 @@ export function PoolChart({
                 <ProviderIcon provider={tile.provider} resolvedTheme={resolvedTheme} />
               )}
               <span className={styles.statName}>{tile.label}</span>
-              {item && <span className={styles.swatchLine} aria-hidden="true" />}
             </span>
           );
           if (!item) {
@@ -450,24 +449,26 @@ export function PoolChart({
               }
               onClick={() => onToggleSeries?.(item.id)}
             >
-              {head}
-              <span className={styles.statValue}>{Math.round(norm(item, item.remaining))}%</span>
-              <span className={styles.statMeta}>
-                {scale === 'share'
-                  ? t('pd_overview.pooled_of_total', { remaining: pooled, total: item.total })
-                  : t('pd_overview.of_total', { total: item.total })}
-                {tile.notLoaded > 0 && (
-                  <> · {t('pd_overview.not_loaded', { count: tile.notLoaded })}</>
+              <span className={styles.statBody}>
+                {head}
+                <span className={styles.statMeta}>
+                  {scale === 'share'
+                    ? t('pd_overview.pooled_of_total', { remaining: pooled, total: item.total })
+                    : t('pd_overview.of_total', { total: item.total })}
+                  {tile.notLoaded > 0 && (
+                    <> · {t('pd_overview.not_loaded', { count: tile.notLoaded })}</>
+                  )}
+                </span>
+                {reset && (
+                  <span
+                    className={styles.statMeta}
+                    title={`+${Math.round(reset.gain)}% · ${formatWhen(reset.t, locale)}`}
+                  >
+                    {t('pd_overview.next_reset')} <strong>{formatCountdown(reset.t, nowMs)}</strong>
+                  </span>
                 )}
               </span>
-              {reset && (
-                <span
-                  className={styles.statMeta}
-                  title={`+${Math.round(reset.gain)}% · ${formatWhen(reset.t, locale)}`}
-                >
-                  {t('pd_overview.next_reset')} <strong>{formatCountdown(reset.t, nowMs)}</strong>
-                </span>
-              )}
+              <span className={styles.statValue}>{Math.round(norm(item, item.remaining))}%</span>
             </button>
           );
         })}

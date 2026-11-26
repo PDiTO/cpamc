@@ -19,7 +19,7 @@
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 8px;
 }
 
@@ -38,7 +38,11 @@
   text-align: left;
 }
 
+/* Logo, name and details on the left; the big percentage on the right. */
 button.stat {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
   transition:
     opacity var(--dur-hover) var(--ease-out-strong),
@@ -55,11 +59,15 @@ button.stat {
 
   &[aria-pressed='false'] {
     opacity: 0.45;
-
-    .swatchLine {
-      border-top-style: dotted;
-    }
   }
+}
+
+.statBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .statEmpty {
@@ -82,14 +90,6 @@ button.stat {
   white-space: nowrap;
 }
 
-.swatchLine {
-  flex: none;
-  width: 16px;
-  margin-left: auto;
-  border-top: 3px solid var(--series-color);
-  border-radius: 2px;
-}
-
 .statValue {
   font-size: 30px;
   font-weight: 750;
@@ -97,6 +97,7 @@ button.stat {
   letter-spacing: -0.04em;
   color: var(--series-color);
   font-variant-numeric: tabular-nums;
+  flex: none;
 }
 
 .statSub .statValue {
